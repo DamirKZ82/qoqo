@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.deps import CurrentUser, DbSession
 from app.models import (
-    ALL_ORDERS_ROLES,
     FULFILMENT_ROLES,
     STATUS_TITLES,
     STATUS_TRANSITIONS,
@@ -28,6 +27,7 @@ from app.schemas.order import (
     OrderStatusChange,
     OrderWrite,
 )
+from app.services.orders import visible_orders_conditions
 
 router = APIRouter(prefix="/orders", tags=["Заявки"])
 
@@ -106,22 +106,7 @@ def serialize_order(order: Order, *, with_lines: bool = True) -> dict[str, Any]:
 
 
 def _visible_orders_stmt(user: User) -> Any:
-    stmt = select(Order).options(selectinload(Order.lines))
-    if user.role not in ALL_ORDERS_ROLES:
-        # Торговый представитель видит только свои заявки.
-        return stmt.where(Order.author_id == user.id)
-
-    # Чужие черновики не показываем: заявка попадает в работу после отправки.
-    stmt = stmt.where((Order.status != OrderStatus.DRAFT) | (Order.author_id == user.id))
-
-    if user.role == UserRole.WAREHOUSE and user.warehouse_id is not None:
-        # Кладовщик закреплён за складом — видит его заявки и те, где склад ещё
-        # не указан: иначе такая заявка не попала бы вообще ни к кому.
-        stmt = stmt.where(
-            (Order.warehouse_id == user.warehouse_id) | (Order.warehouse_id.is_(None))
-        )
-
-    return stmt
+    return select(Order).options(selectinload(Order.lines)).where(*visible_orders_conditions(user))
 
 
 def _get_order_for_user(db: Session, user: User, order_id: uuid.UUID) -> Order:

@@ -11,6 +11,30 @@ export function formatMoney(value: string | number | null | undefined): string {
   return Number.isFinite(amount) ? moneyFormatter.format(amount) : '—'
 }
 
+/** Короткая сумма для осей и подписей: 12,1 млн вместо 12 140 300 ₸. */
+export function formatCompactMoney(value: string | number | null | undefined): string {
+  const amount = Number(value ?? 0)
+  if (!Number.isFinite(amount)) return '—'
+  const abs = Math.abs(amount)
+  if (abs >= 1_000_000) {
+    const millions = (amount / 1_000_000).toFixed(Number.isInteger(amount / 1_000_000) ? 0 : 1)
+    return `${millions.replace('.', ',')} млн`
+  }
+  if (abs >= 1_000) return `${Math.round(amount / 1_000)} тыс`
+  return String(Math.round(amount))
+}
+
+/** Изменение к прошлому периоду в процентах. null — если сравнивать не с чем. */
+export function growthPercent(
+  current: string | number | null | undefined,
+  previous: string | number | null | undefined,
+): number | null {
+  const now = Number(current ?? 0)
+  const before = Number(previous ?? 0)
+  if (!Number.isFinite(now) || !Number.isFinite(before) || before === 0) return null
+  return ((now - before) / before) * 100
+}
+
 export function formatQuantity(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—'
   const amount = Number(value)

@@ -3,12 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   AppSettings,
+  BreakdownReport,
   ContentBlock,
   CurrentUser,
   NewsPost,
   Order,
   OrderStats,
   Page,
+  PeriodGroup,
+  ReportDimension,
+  SalesReport,
 } from './types'
 
 // --- Публичные данные (доступны без авторизации) -------------------------
@@ -128,6 +132,57 @@ export function useOrderStats(refetchInterval?: number) {
     queryFn: async () => (await api.get<OrderStats>('/orders/stats')).data,
     refetchInterval,
   })
+}
+
+// --- Отчёты --------------------------------------------------------------
+
+export interface ReportFilters {
+  date_from: string
+  date_to: string
+  warehouse_id?: string
+  counterparty_id?: string
+  outlet_id?: string
+  author_id?: string
+}
+
+export function useSalesReport(filters: ReportFilters, groupBy: PeriodGroup) {
+  return useQuery({
+    queryKey: ['reports', 'sales', filters, groupBy],
+    queryFn: async () =>
+      (await api.get<SalesReport>('/reports/sales', { params: { ...filters, group_by: groupBy } }))
+        .data,
+    // Пока грузятся новые цифры, показываем прежние: иначе страница мигает
+    // при каждом сдвиге периода.
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useBreakdown(filters: ReportFilters, dimension: ReportDimension, limit = 20) {
+  return useQuery({
+    queryKey: ['reports', 'breakdown', filters, dimension, limit],
+    queryFn: async () =>
+      (await api.get<BreakdownReport>('/reports/breakdown', { params: { ...filters, dimension, limit } }))
+        .data,
+    placeholderData: (previous) => previous,
+  })
+}
+
+/** Скачивает разрез целиком файлом CSV. */
+export async function downloadBreakdownCsv(
+  filters: ReportFilters,
+  dimension: ReportDimension,
+): Promise<void> {
+  const response = await api.get('/reports/breakdown/export', {
+    params: { ...filters, dimension },
+    responseType: 'blob',
+  })
+
+  const url = URL.createObjectURL(response.data as Blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `qoqo-${dimension}-${filters.date_from}-${filters.date_to}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export function useSaveOrder() {

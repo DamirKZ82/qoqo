@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/app/DashboardPage'
 import { OrderDetailPage } from './pages/app/OrderDetailPage'
 import { OrderFormPage } from './pages/app/OrderFormPage'
 import { OrdersPage } from './pages/app/OrdersPage'
+import { ReportsPage } from './pages/app/ReportsPage'
 import { SettingsPage } from './pages/app/SettingsPage'
 import { UsersPage } from './pages/app/UsersPage'
 import { WarehousePage } from './pages/app/WarehousePage'
@@ -52,6 +53,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={['admin', 'director', 'warehouse']}>
             <WarehousePage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'reports',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'accountant', 'sales_rep']}>
+            <ReportsPage />
           </ProtectedRoute>
         ),
       },

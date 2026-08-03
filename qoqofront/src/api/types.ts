@@ -156,6 +156,63 @@ export interface Order {
   lines: OrderLine[]
 }
 
+export type PeriodGroup = 'day' | 'week' | 'month'
+
+export type ReportDimension =
+  | 'outlet'
+  | 'counterparty'
+  | 'sales_rep'
+  | 'nomenclature'
+  | 'category'
+  | 'warehouse'
+
+export interface ReportTotals {
+  orders_count: number
+  total_amount: string
+  average_check: string
+  positions_count: number
+  quantity: string
+  outlets_count: number
+}
+
+export interface SalesPoint {
+  period: string
+  label: string
+  title: string
+  orders_count: number
+  total_amount: string
+}
+
+export interface SalesReport {
+  date_from: string
+  date_to: string
+  group_by: PeriodGroup
+  totals: ReportTotals
+  previous: ReportTotals
+  previous_from: string
+  previous_to: string
+  series: SalesPoint[]
+}
+
+export interface BreakdownRow {
+  id: string | null
+  name: string
+  orders_count: number
+  quantity: string
+  total_amount: string
+  share: number
+}
+
+export interface BreakdownReport {
+  dimension: ReportDimension
+  dimension_title: string
+  date_from: string
+  date_to: string
+  total_amount: string
+  shown_amount: string
+  rows: BreakdownRow[]
+}
+
 export interface OrderStats {
   draft: number
   new: number

@@ -1,5 +1,6 @@
 import AddCircleIcon from '@mui/icons-material/AddCircle'
 import ArticleIcon from '@mui/icons-material/Article'
+import BarChartIcon from '@mui/icons-material/BarChart'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import LogoutIcon from '@mui/icons-material/Logout'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -65,6 +66,13 @@ const NAV_ITEMS: NavItem[] = [
     group: 'Работа',
     roles: ['admin', 'director', 'warehouse'],
     mobile: true,
+  },
+  {
+    to: '/app/reports',
+    label: 'Отчёты',
+    icon: <BarChartIcon />,
+    group: 'Работа',
+    roles: ['admin', 'director', 'accountant', 'sales_rep'],
   },
 
   { to: '/app/refs/outlets', label: 'Торговые точки', icon: <StorefrontIcon />, group: 'Справочники' },
