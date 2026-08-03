@@ -265,6 +265,7 @@ export const ru = {
   },
 
   reports: {
+    filters: 'Отбор',
     allOutlets: 'Все точки',
     allNomenclature: 'Вся номенклатура',
     allCategories: 'Все группы',

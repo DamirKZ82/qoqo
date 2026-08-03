@@ -24,6 +24,12 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { useMemo, useState } from 'react'
 
+import Badge from '@mui/material/Badge'
+import Collapse from '@mui/material/Collapse'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FilterListIcon from '@mui/icons-material/FilterList'
+
 import { errorMessage } from '../../api/client'
 import { TopSales } from '../../components/TopSales'
 import { TurnoverTable } from '../../components/TurnoverTable'
@@ -170,6 +176,7 @@ export function ReportsPage() {
   const [authorId, setAuthorId] = useState('')
   const [nomenclatureId, setNomenclatureId] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
 
   const initial = PRESETS[1].range()
@@ -230,6 +237,80 @@ export function ReportsPage() {
     limit: 200,
   })
 
+  function resetFilters() {
+    setWarehouseId('')
+    setCounterpartyId('')
+    setOutletId('')
+    setAuthorId('')
+    setNomenclatureId('')
+    setCategoryId('')
+  }
+
+  /** Что сейчас ограничивает выборку — для чипов под свёрнутой панелью. */
+  const activeFilters = useMemo(() => {
+    const nameOf = (items: { id: string; name: string }[] | undefined, id: string) =>
+      items?.find((item) => item.id === id)?.name ?? '—'
+
+    return [
+      {
+        key: 'warehouse',
+        label: t.reports.warehouse,
+        value: nameOf(warehouses?.items, warehouseId),
+        active: Boolean(warehouseId),
+        clear: () => setWarehouseId(''),
+      },
+      {
+        key: 'counterparty',
+        label: t.reports.counterparty,
+        value: nameOf(counterparties?.items, counterpartyId),
+        active: Boolean(counterpartyId),
+        clear: () => setCounterpartyId(''),
+      },
+      {
+        key: 'outlet',
+        label: t.reports.dimensions.outlet,
+        value: nameOf(outlets?.items, outletId),
+        active: Boolean(outletId),
+        clear: () => setOutletId(''),
+      },
+      {
+        key: 'nomenclature',
+        label: t.reports.dimensions.nomenclature,
+        value: nameOf(products?.items, nomenclatureId),
+        active: Boolean(nomenclatureId),
+        clear: () => setNomenclatureId(''),
+      },
+      {
+        key: 'category',
+        label: t.reports.dimensions.category,
+        value: nameOf(categories?.items, categoryId),
+        active: Boolean(categoryId),
+        clear: () => setCategoryId(''),
+      },
+      {
+        key: 'sales_rep',
+        label: t.reports.dimensions.sales_rep,
+        value: employees?.items.find((item) => item.id === authorId)?.full_name ?? '—',
+        active: Boolean(authorId),
+        clear: () => setAuthorId(''),
+      },
+    ].filter((item) => item.active)
+  }, [
+    t,
+    warehouses,
+    warehouseId,
+    counterparties,
+    counterpartyId,
+    outlets,
+    outletId,
+    products,
+    nomenclatureId,
+    categories,
+    categoryId,
+    employees,
+    authorId,
+  ])
+
   function applyPreset(key: PresetKey) {
     const found = PRESETS.find((item) => item.key === key)
     if (!found) return
@@ -281,7 +362,11 @@ export function ReportsPage() {
               ))}
             </ToggleButtonGroup>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ flexWrap: 'wrap', alignItems: { sm: 'center' } }}
+            >
               <TextField
                 type="date"
                 label={t.reports.dateFrom}
@@ -302,6 +387,43 @@ export function ReportsPage() {
                 }}
                 slotProps={{ inputLabel: { shrink: true } }}
               />
+
+              <Box sx={{ flexGrow: 1 }} />
+
+              <Button
+                onClick={() => setFiltersOpen((open) => !open)}
+                startIcon={
+                  <Badge badgeContent={activeFilters.length} color="primary">
+                    <FilterListIcon />
+                  </Badge>
+                }
+                endIcon={filtersOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              >
+                {t.reports.filters}
+              </Button>
+            </Stack>
+
+            {/* Свёрнутый отбор показываем чипами: видно, что именно ограничено,
+                и любое условие снимается по отдельности. */}
+            {!filtersOpen && activeFilters.length > 0 && (
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                {activeFilters.map((item) => (
+                  <Chip
+                    key={item.key}
+                    size="small"
+                    label={`${item.label}: ${item.value}`}
+                    onDelete={item.clear}
+                  />
+                ))}
+              </Stack>
+            )}
+
+            <Collapse in={filtersOpen} unmountOnExit>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={2}
+                sx={{ flexWrap: 'wrap', gap: 2, pt: 1 }}
+              >
               <TextField
                 select
                 label={t.reports.warehouse}
@@ -392,18 +514,13 @@ export function ReportsPage() {
               </TextField>
 
               <Button
-                onClick={() => {
-                  setWarehouseId('')
-                  setCounterpartyId('')
-                  setOutletId('')
-                  setAuthorId('')
-                  setNomenclatureId('')
-                  setCategoryId('')
-                }}
+                onClick={resetFilters}
+                disabled={activeFilters.length === 0}
               >
                 {t.reports.resetFilters}
               </Button>
-            </Stack>
+              </Stack>
+            </Collapse>
           </Stack>
         </CardContent>
       </Card>

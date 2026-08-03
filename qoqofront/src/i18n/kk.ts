@@ -247,6 +247,7 @@ export const kk: Dictionary = {
   },
 
   reports: {
+    filters: 'Сүзгі',
     allOutlets: 'Барлық нүктелер',
     allNomenclature: 'Барлық номенклатура',
     allCategories: 'Барлық топтар',
