@@ -1,0 +1,6 @@
+# Единый перевод строки в репозитории — LF, в рабочей копии Windows остаётся CRLF.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary

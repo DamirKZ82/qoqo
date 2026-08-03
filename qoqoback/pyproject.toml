@@ -1,0 +1,18 @@
+[project]
+name = "qoqoback"
+version = "0.1.0"
+description = "Бэкенд проекта qoqo"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+# Комментарии и строки на русском — кириллица здесь намеренная, не опечатка.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
