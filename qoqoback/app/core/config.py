@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/qoqo"
     timezone: str = "Asia/Almaty"
 
+    # На serverless каждый вызов живёт в своём процессе: пул соединений между
+    # вызовами не переиспользуется, зато выедает лимит подключений базы.
+    # Включается автоматически на Vercel, здесь — принудительно.
+    db_null_pool: bool = False
+
     secret_key: str = "dev-secret-change-me"
     access_token_expire_minutes: int = 720
 
@@ -27,7 +32,19 @@ class Settings(BaseSettings):
     seed_owner_password: str = "owner12345"
 
     # Каталог для загруженных файлов (логотип и т.п.), раздаётся по /media.
+    # Используется, только когда не настроен бакет.
     media_root: str = "media"
+
+    # S3-совместимое хранилище: AWS S3, Cloudflare R2, MinIO и подобные.
+    # Пока s3_bucket пуст, файлы лежат на локальном диске. На serverless
+    # локального диска, переживающего вызов, нет — бакет там обязателен.
+    s3_bucket: str = ""
+    s3_endpoint_url: str = ""
+    s3_region: str = "us-east-1"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    # Адрес, по которому файлы читает браузер: CDN или сам бакет.
+    s3_public_url: str = ""
 
     # Адрес фронтенда — из него собираются ссылки в письмах.
     frontend_url: str = "http://localhost:5173"

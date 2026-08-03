@@ -1,13 +1,11 @@
-import uuid
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
-from app.core.config import get_settings as get_app_config
 from app.core.deps import DbSession, require_roles
 from app.models import SETTINGS_ID, AppSettings, UserRole
 from app.schemas.settings import SettingsRead, SettingsWrite
+from app.services.storage import save_file
 
 router = APIRouter(prefix="/settings", tags=["Настройки системы"])
 
@@ -68,14 +66,7 @@ def save_upload(file: UploadFile, subdir: str) -> str:
     if not data:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Файл пустой")
 
-    media_root = Path(get_app_config().media_root)
-    target_dir = media_root / subdir
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    # Имя генерируем сами: пользовательское имя файла в путь не попадает.
-    filename = f"{uuid.uuid4().hex}{extension}"
-    (target_dir / filename).write_bytes(data)
-    return f"/media/{subdir}/{filename}"
+    return save_file(data, subdir, extension, content_type)
 
 
 @router.post("/logo", response_model=SettingsRead)
