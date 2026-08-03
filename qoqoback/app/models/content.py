@@ -58,3 +58,8 @@ class ContentBlock(UUIDMixin, TimestampMixin, Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False, index=True)
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+
+    # Переводы поверх базовых полей: {"kk": {"title": ..., "subtitle": ..., "payload": {...}}}.
+    # Базовые поля — язык по умолчанию (русский); при отсутствии перевода
+    # показывается именно он, чтобы недопереведённая страница не зияла пустотами.
+    translations: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)

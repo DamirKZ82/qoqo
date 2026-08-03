@@ -27,6 +27,7 @@ def serialize(post: NewsPost) -> dict[str, Any]:
         "cover_url": post.cover_url,
         "category": post.category,
         "category_title": CATEGORY_TITLES.get(post.category, post.category.value),
+        "translations": post.translations or {},
         "is_published": post.is_published,
         "is_pinned": post.is_pinned,
         "published_at": post.published_at,

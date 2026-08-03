@@ -63,6 +63,8 @@ export interface ContentBlock {
   sort_order: number
   is_visible: boolean
   payload: Record<string, unknown>
+  /** Переводы поверх базовых полей: { kk: { title, subtitle, payload } } */
+  translations: Record<string, Record<string, unknown>>
 }
 
 export type PostCategory = 'news' | 'promo' | 'announcement'
@@ -76,6 +78,8 @@ export interface NewsPost {
   cover_url: string | null
   category: PostCategory
   category_title: string
+  /** Переводы поверх базовых полей: { kk: { title, summary, body } } */
+  translations: Record<string, Record<string, unknown>>
   is_published: boolean
   is_pinned: boolean
   published_at: string | null

@@ -27,7 +27,7 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
-import { useState, type ReactElement } from 'react'
+import { useMemo, useState, type ReactElement } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 
 import { mediaUrl } from '../../api/client'
@@ -35,7 +35,8 @@ import { useContentBlocks, useNews, useSettings } from '../../api/queries'
 import type { ContentBlock } from '../../api/types'
 import { Logo } from '../../components/Logo'
 import { LanguageSwitch, ThemeToggle } from '../../components/Preferences'
-import { useT, type Dictionary } from '../../i18n'
+import { useLanguage, useT, type Dictionary } from '../../i18n'
+import { localizeBlock, localizePost } from '../../lib/localize'
 import { brand } from '../../theme'
 
 function navLinks(t: Dictionary) {
@@ -73,11 +74,22 @@ export function LandingPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [menuOpen, setMenuOpen] = useState(false)
   const t = useT()
+  const { language } = useLanguage()
   const links = navLinks(t)
 
   const { data: settings } = useSettings()
-  const { data: blocks = [] } = useContentBlocks()
-  const { data: news } = useNews({ limit: 3 })
+  const { data: rawBlocks = [] } = useContentBlocks()
+  const { data: rawNews } = useNews({ limit: 3 })
+
+  // Содержимое CMS хранится на языке по умолчанию, перевод накладывается сверху.
+  const blocks = useMemo(
+    () => rawBlocks.map((item) => localizeBlock(item, language)),
+    [rawBlocks, language],
+  )
+  const news = useMemo(
+    () => (rawNews ? { ...rawNews, items: rawNews.items.map((i) => localizePost(i, language)) } : rawNews),
+    [rawNews, language],
+  )
 
   const block = (type: string) => blocks.find((item) => item.block_type === type)
   const hero = block('hero')

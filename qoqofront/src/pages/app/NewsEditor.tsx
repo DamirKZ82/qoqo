@@ -19,6 +19,8 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -26,7 +28,7 @@ import { useRef, useState } from 'react'
 
 import { api, errorMessage, mediaUrl } from '../../api/client'
 import type { NewsPost, Page, PostCategory } from '../../api/types'
-import { useT } from '../../i18n'
+import { LANGUAGES, useT, type Language } from '../../i18n'
 import { formatDate } from '../../lib/format'
 
 const CATEGORIES: PostCategory[] = [
@@ -50,7 +52,26 @@ export function NewsEditor() {
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [editing, setEditing] = useState<Partial<NewsPost> | null>(null)
+  // Русский правится в самой записи, остальные языки — в translations.
+  const [lang, setLang] = useState<Language>('ru')
   const [error, setError] = useState<string | null>(null)
+
+  type TextField = 'title' | 'summary' | 'body'
+
+  function fieldValue(field: TextField): string {
+    if (lang === 'ru') return String(editing?.[field] ?? '')
+    const translation = (editing?.translations?.[lang] ?? {}) as Record<string, unknown>
+    return String(translation[field] ?? '')
+  }
+
+  function setField(field: TextField, value: string): void {
+    setEditing((current) => {
+      if (lang === 'ru') return { ...current, [field]: value }
+      const translations = { ...(current?.translations ?? {}) }
+      translations[lang] = { ...(translations[lang] ?? {}), [field]: value }
+      return { ...current, translations }
+    })
+  }
 
   const { data } = useQuery({
     queryKey: ['news', 'admin'],
@@ -65,6 +86,7 @@ export function NewsEditor() {
     mutationFn: async (post: Partial<NewsPost>) => {
       const values = {
         title: post.title,
+        translations: post.translations ?? {},
         summary: post.summary || null,
         body: post.body || null,
         cover_url: post.cover_url || null,
@@ -155,12 +177,19 @@ export function NewsEditor() {
         <DialogTitle>{editing?.id ? t.news.editTitle : t.news.createTitle}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
+            <Tabs value={lang} onChange={(_, value: Language) => setLang(value)}>
+              {LANGUAGES.map((item) => (
+                <Tab key={item.code} value={item.code} label={item.label} />
+              ))}
+            </Tabs>
+
+            {lang !== 'ru' && <Alert severity="info">{t.content.translationHint}</Alert>}
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField
               label={t.news.heading}
-              value={editing?.title ?? ''}
-              onChange={(event) => setEditing({ ...editing, title: event.target.value })}
+              value={fieldValue('title')}
+              onChange={(event) => setField('title', event.target.value)}
               required
               fullWidth
             />
@@ -181,16 +210,16 @@ export function NewsEditor() {
             </TextField>
             <TextField
               label={t.news.summary}
-              value={editing?.summary ?? ''}
-              onChange={(event) => setEditing({ ...editing, summary: event.target.value })}
+              value={fieldValue('summary')}
+              onChange={(event) => setField('summary', event.target.value)}
               multiline
               minRows={2}
               fullWidth
             />
             <TextField
               label={t.news.body}
-              value={editing?.body ?? ''}
-              onChange={(event) => setEditing({ ...editing, body: event.target.value })}
+              value={fieldValue('body')}
+              onChange={(event) => setField('body', event.target.value)}
               multiline
               minRows={4}
               fullWidth

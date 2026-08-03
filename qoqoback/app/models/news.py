@@ -1,7 +1,9 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Enum, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -43,6 +45,10 @@ class NewsPost(UUIDMixin, TimestampMixin, Base):
         nullable=False,
         index=True,
     )
+
+    # Переводы поверх базовых полей: {"kk": {"title": ..., "summary": ..., "body": ...}}.
+    # Базовые поля — язык по умолчанию, он же запасной вариант.
+    translations: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
 
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

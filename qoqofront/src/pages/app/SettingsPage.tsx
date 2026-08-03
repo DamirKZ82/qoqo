@@ -17,6 +17,7 @@ import { useSettings } from '../../api/queries'
 import type { AppSettings } from '../../api/types'
 import { Logo } from '../../components/Logo'
 import { useT } from '../../i18n'
+import logoDarkSrc from '../../assets/logo-dark.svg'
 import logoSrc from '../../assets/logo.svg'
 
 type LogoVariant = 'light' | 'dark' | 'favicon'
@@ -98,13 +99,9 @@ function LogoSlot({
         >
           <Box
             component="img"
-            src={mediaUrl(currentUrl) ?? logoSrc}
+            src={mediaUrl(currentUrl) ?? (variant === 'dark' ? logoDarkSrc : logoSrc)}
             alt={title}
-            sx={{
-              maxHeight: 64,
-              maxWidth: '100%',
-              filter: variant === 'dark' && !currentUrl ? 'brightness(0) invert(1)' : 'none',
-            }}
+            sx={{ maxHeight: 64, maxWidth: '100%' }}
           />
         </Box>
 

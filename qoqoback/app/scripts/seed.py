@@ -100,6 +100,22 @@ OUTLETS = [
 CONTENT_BLOCKS = [
     {
         "block_type": BlockType.HERO,
+        "translations": {
+            "kk": {
+                "title": "Сенім сыйлайтын балғындық",
+                "subtitle": "Свежесть, которой доверяют",
+                "payload": {
+                    "lead": "Астана және облыс бойынша құс фабрикасы өнімінің дистрибуциясы. "
+                    "Меншікті көлік паркі, тапсырыс берілген күні жеткізу.",
+                    "cta_text": "Серіктес болу",
+                    "badges": [
+                        {"title": "HALAL", "subtitle": "Сертификатталған"},
+                        {"title": "ISO 22000", "subtitle": "Тағам қауіпсіздігі"},
+                        {"title": "HACCP", "subtitle": "Сапа бақылауы"},
+                    ],
+                },
+            }
+        },
         "title": "Свежесть, которой доверяют",
         "subtitle": "Сенім сыйлайтын балғындық",
         "sort_order": 10,
@@ -117,6 +133,35 @@ CONTENT_BLOCKS = [
     },
     {
         "block_type": BlockType.FEATURES,
+        "translations": {
+            "kk": {
+                "title": "Бізді неге таңдайды",
+                "payload": {
+                    "items": [
+                        {
+                            "icon": "eco",
+                            "title": "Табиғи өнім",
+                            "subtitle": "Өсу гормондарынсыз, тек табиғи жем",
+                        },
+                        {
+                            "icon": "ac_unit",
+                            "title": "Жаңа салқындату",
+                            "subtitle": "Фермадан сөреге дейін үзіліссіз суық тізбек",
+                        },
+                        {
+                            "icon": "verified",
+                            "title": "Сапа кепілдігі",
+                            "subtitle": "Өндірістің әр кезеңінде бақылау",
+                        },
+                        {
+                            "icon": "local_shipping",
+                            "title": "Уақытында жеткізу",
+                            "subtitle": "16:00-ге дейінгі тапсырыс — келесі таңертең тиеу",
+                        },
+                    ]
+                },
+            }
+        },
         "title": "Почему выбирают нас",
         "sort_order": 20,
         "payload": {
@@ -146,6 +191,22 @@ CONTENT_BLOCKS = [
     },
     {
         "block_type": BlockType.CATALOG,
+        "translations": {
+            "kk": {
+                "title": "Өнім каталогы",
+                "subtitle": "Кең ассортимент. Жоғары сапа. Адал өнім.",
+                "payload": {
+                    "items": [
+                        {"title": "Тұтас құс", "count": "2 позиция"},
+                        {"title": "Бөлшектеу", "count": "6 позиция"},
+                        {"title": "Ішкі мүшелер", "count": "18 позиция"},
+                        {"title": "Жартылай фабрикаттар", "count": "26 позиция"},
+                        {"title": "Маринадталған өнім", "count": "34 позиция"},
+                        {"title": "Мұздатылған өнім", "count": "42 позиция"},
+                    ]
+                },
+            }
+        },
         "title": "Каталог продукции",
         "subtitle": "Широкий ассортимент. Высокое качество. Честный продукт.",
         "sort_order": 30,
@@ -162,6 +223,21 @@ CONTENT_BLOCKS = [
     },
     {
         "block_type": BlockType.ABOUT,
+        "translations": {
+            "kk": {
+                "title": "Компания туралы",
+                "payload": {
+                    "text": "QoQo — сапаның жоғары стандарттарына, қауіпсіздік пен "
+                    "табиғилыққа бағдарланған заманауи тауық еті өндірісі.",
+                    "bullets": [
+                        "Меншікті өндіріс және сапаны толық бақылау",
+                        "Еуропалық стандарттарға сай заманауи жабдық",
+                        "Күн сайын жаңа өнім: фермадан — дастарханыңызға",
+                        "Өсу гормондарынсыз табиғи жем",
+                    ],
+                },
+            }
+        },
         "title": "О компании",
         "sort_order": 40,
         "payload": {
@@ -177,6 +253,17 @@ CONTENT_BLOCKS = [
     },
     {
         "block_type": BlockType.CONTACTS,
+        "translations": {
+            "kk": {
+                "title": "Байланыс",
+                "payload": {
+                    "address": "Қазақстан Республикасы, Астана қ., Оңтүстік-Шығыс ауданы, "
+                    "Көкпар көшесі, 2а",
+                    "legal_name": "SAFA ЖК",
+                    "work_hours": "Дс–Сб, 08:00–18:00",
+                },
+            }
+        },
         "title": "Контакты",
         "sort_order": 50,
         "payload": {
@@ -347,6 +434,18 @@ def seed(db: Session) -> User:
     if db.execute(select(func.count()).select_from(ContentBlock)).scalar_one() == 0:
         for block in CONTENT_BLOCKS:
             db.add(ContentBlock(**block))
+    else:
+        # База уже наполнена: тексты не трогаем, но доливаем переводы тем блокам,
+        # где их ещё нет, — иначе на базе, созданной до появления переводов,
+        # казахская версия осталась бы пустой.
+        by_type = {block["block_type"]: block for block in CONTENT_BLOCKS}
+        existing = db.execute(select(ContentBlock)).scalars().all()
+        for row in existing:
+            if row.translations:
+                continue
+            defaults = by_type.get(row.block_type)
+            if defaults and defaults.get("translations"):
+                row.translations = defaults["translations"]
 
     if db.get(AppSettings, SETTINGS_ID) is None:
         db.add(

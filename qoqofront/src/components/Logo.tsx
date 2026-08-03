@@ -3,6 +3,7 @@ import { useTheme } from '@mui/material/styles'
 
 import { mediaUrl } from '../api/client'
 import { useSettings } from '../api/queries'
+import logoDarkSrc from '../assets/logo-dark.svg'
 import logoSrc from '../assets/logo.svg'
 
 interface LogoProps {
@@ -20,6 +21,10 @@ interface LogoProps {
  *
  * Берётся из настроек системы, если администратор загрузил свой файл,
  * иначе используется фирменный логотип, вшитый в сборку.
+ *
+ * Для тёмного фона используется отдельный файл, а не CSS-фильтр: фильтр
+ * перекрасил бы в белый весь знак, включая гребешок и клюв, — а они должны
+ * оставаться золотыми. В `logo-dark.svg` белым сделаны только буквы.
  */
 export function Logo({ height = 40, dark }: LogoProps) {
   const { data: settings } = useSettings()
@@ -27,20 +32,14 @@ export function Logo({ height = 40, dark }: LogoProps) {
 
   const onDark = dark ?? theme.palette.mode === 'dark'
   const uploaded = onDark ? settings?.logo_dark_url || settings?.logo_url : settings?.logo_url
-  const src = mediaUrl(uploaded) ?? logoSrc
+  const fallback = onDark ? logoDarkSrc : logoSrc
 
   return (
     <Box
       component="img"
-      src={src}
+      src={mediaUrl(uploaded) ?? fallback}
       alt={settings?.company_name ?? 'QoQo'}
-      sx={{
-        height,
-        width: 'auto',
-        display: 'block',
-        // Белый логотип на тёмном фоне, когда отдельный файл не загружен.
-        filter: onDark && !settings?.logo_dark_url ? 'brightness(0) invert(1)' : 'none',
-      }}
+      sx={{ height, width: 'auto', display: 'block' }}
     />
   )
 }

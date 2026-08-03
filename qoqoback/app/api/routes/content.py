@@ -31,6 +31,7 @@ def serialize(block: ContentBlock) -> dict[str, Any]:
         "sort_order": block.sort_order,
         "is_visible": block.is_visible,
         "payload": block.payload or {},
+        "translations": block.translations or {},
     }
 
 

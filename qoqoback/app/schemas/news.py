@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +17,7 @@ class NewsPostRead(ORMModel):
     cover_url: str | None
     category: PostCategory
     category_title: str
+    translations: dict[str, Any]
     is_published: bool
     is_pinned: bool
     published_at: datetime | None
@@ -31,6 +33,8 @@ class NewsPostWrite(BaseModel):
     body: str | None = None
     cover_url: str | None = None
     category: PostCategory = PostCategory.NEWS
+    # {"kk": {"title": ..., "summary": ..., "body": ...}}
+    translations: dict[str, Any] = Field(default_factory=dict)
     is_published: bool = False
     is_pinned: bool = False
     published_at: datetime | None = None

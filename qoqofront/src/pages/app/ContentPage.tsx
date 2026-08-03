@@ -31,7 +31,7 @@ import { useState } from 'react'
 import { api, errorMessage } from '../../api/client'
 import { useContentBlocks } from '../../api/queries'
 import type { BlockType, ContentBlock } from '../../api/types'
-import { useT, type Dictionary } from '../../i18n'
+import { LANGUAGES, useT, type Dictionary, type Language } from '../../i18n'
 import { NewsEditor } from './NewsEditor'
 
 /** Какие поля показывать в редакторе для каждого типа блока. */
@@ -99,6 +99,64 @@ const BLOCK_TYPES: BlockType[] = [
   'cta',
 ]
 
+interface BlockDraft {
+  title: string
+  subtitle: string
+  payload: Record<string, unknown>
+}
+
+/**
+ * Повторяет структуру значения пустыми строками.
+ *
+ * Нужен, чтобы на вкладке перевода сразу стояло столько же полей и пунктов
+ * списка, сколько в оригинале: иначе переводчику пришлось бы добавлять их
+ * вручную и следить за порядком.
+ */
+function emptyLike(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(emptyLike)
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, emptyLike(item)]))
+  }
+  return ''
+}
+
+function initialDrafts(block: ContentBlock): Record<Language, BlockDraft> {
+  const base: BlockDraft = {
+    title: block.title ?? '',
+    subtitle: block.subtitle ?? '',
+    payload: block.payload ?? {},
+  }
+
+  const drafts = { ru: base } as Record<Language, BlockDraft>
+  for (const { code } of LANGUAGES) {
+    if (code === 'ru') continue
+    const saved = (block.translations?.[code] ?? {}) as Record<string, unknown>
+    const savedPayload = (saved.payload as Record<string, unknown>) ?? {}
+    drafts[code] = {
+      title: String(saved.title ?? ''),
+      subtitle: String(saved.subtitle ?? ''),
+      // Пустые поля заготавливаем по структуре оригинала.
+      payload: { ...(emptyLike(base.payload) as Record<string, unknown>), ...savedPayload },
+    }
+  }
+  return drafts
+}
+
+/** Выбрасывает пустые значения: пустая строка — это «не переведено». */
+function pruneEmpty(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(pruneEmpty)
+  if (typeof value === 'object' && value !== null) {
+    const result: Record<string, unknown> = {}
+    for (const [key, item] of Object.entries(value)) {
+      const cleaned = pruneEmpty(item)
+      if (cleaned !== undefined) result[key] = cleaned
+    }
+    return Object.keys(result).length > 0 ? result : undefined
+  }
+  if (typeof value === 'string' && value.trim() === '') return undefined
+  return value
+}
+
 function BlockEditor({
   block,
   onClose,
@@ -108,11 +166,35 @@ function BlockEditor({
   onClose: () => void
   onSaved: () => void
 }) {
-  const [title, setTitle] = useState(block.title ?? '')
-  const [subtitle, setSubtitle] = useState(block.subtitle ?? '')
-  const [payload, setPayload] = useState<Record<string, unknown>>(block.payload ?? {})
   const [error, setError] = useState<string | null>(null)
   const t = useT()
+
+  // Блок правится по языкам: русский — базовая запись, остальные лежат в translations.
+  const [lang, setLang] = useState<Language>('ru')
+  const [drafts, setDrafts] = useState<Record<Language, BlockDraft>>(() =>
+    initialDrafts(block),
+  )
+
+  const draft = drafts[lang]
+  const title = draft.title
+  const subtitle = draft.subtitle
+  const payload = draft.payload
+
+  function patchDraft(values: Partial<BlockDraft>) {
+    setDrafts((current) => ({ ...current, [lang]: { ...current[lang], ...values } }))
+  }
+
+  const setTitle = (value: string) => patchDraft({ title: value })
+  const setSubtitle = (value: string) => patchDraft({ subtitle: value })
+
+  function setPayload(
+    updater: (current: Record<string, unknown>) => Record<string, unknown>,
+  ): void {
+    setDrafts((current) => ({
+      ...current,
+      [lang]: { ...current[lang], payload: updater(current[lang].payload) },
+    }))
+  }
 
   const listConfig = blockLists(t)[block.block_type]
   const listItems = (Array.isArray(payload[listConfig?.key ?? '']) ? payload[listConfig!.key] : []) as
@@ -121,13 +203,25 @@ function BlockEditor({
 
   const save = useMutation({
     mutationFn: async () => {
+      const translations: Record<string, unknown> = {}
+      for (const { code } of LANGUAGES) {
+        if (code === 'ru') continue
+        const cleaned = pruneEmpty({
+          title: drafts[code].title,
+          subtitle: drafts[code].subtitle,
+          payload: drafts[code].payload,
+        })
+        if (cleaned !== undefined) translations[code] = cleaned
+      }
+
       const values = {
         block_type: block.block_type,
-        title: title || null,
-        subtitle: subtitle || null,
+        title: drafts.ru.title || null,
+        subtitle: drafts.ru.subtitle || null,
         sort_order: block.sort_order,
         is_visible: block.is_visible,
-        payload,
+        payload: drafts.ru.payload,
+        translations,
       }
       return block.id
         ? api.put(`/content/blocks/${block.id}`, values)
@@ -148,6 +242,16 @@ function BlockEditor({
       <DialogTitle>{t.content.blockTypes[block.block_type]}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
+          <Tabs value={lang} onChange={(_, value: Language) => setLang(value)}>
+            {LANGUAGES.map((item) => (
+              <Tab key={item.code} value={item.code} label={item.label} />
+            ))}
+          </Tabs>
+
+          {lang !== 'ru' && (
+            <Alert severity="info">{t.content.translationHint}</Alert>
+          )}
+
           {error && <Alert severity="error">{error}</Alert>}
 
           <TextField
@@ -409,6 +513,7 @@ function BlocksTab() {
                 block_type_title: t.content.blockTypes[newType],
                 title: '',
                 subtitle: '',
+                translations: {},
                 sort_order: (blocks.at(-1)?.sort_order ?? 0) + 10,
                 is_visible: true,
                 payload: {},

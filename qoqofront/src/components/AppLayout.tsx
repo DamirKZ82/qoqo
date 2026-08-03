@@ -144,7 +144,8 @@ export function AppLayout() {
 
   function handleLogout() {
     logout()
-    navigate('/login', { replace: true })
+    // После выхода — на сайт, а не на форму входа: иначе кажется, что вход не удался.
+    navigate('/', { replace: true })
   }
 
   const menu = (
