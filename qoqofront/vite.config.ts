@@ -6,9 +6,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // В разработке /api проксируется на FastAPI, поэтому VITE_API_URL можно не задавать.
+    // В разработке /api и /media проксируются на FastAPI, поэтому VITE_API_URL
+    // можно не задавать. /media — это загруженные логотип и картинки блоков.
     proxy: {
       '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/media': {
         target: 'http://localhost:8000',
         changeOrigin: true,
       },

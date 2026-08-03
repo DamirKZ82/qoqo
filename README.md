@@ -1,11 +1,31 @@
 # qoqo
 
-Монорепозиторий проекта qoqo.
+Сайт и система учёта продаж для дистрибуции продукции птицефабрики QoQo.
 
 | Каталог | Что там | Стек |
 | --- | --- | --- |
-| [`qoqoback/`](qoqoback) | Бэкенд, REST API | Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL |
-| [`qoqofront/`](qoqofront) | Фронтенд, SPA | React 19, TypeScript, Vite, Material UI v9 |
+| [`qoqoback/`](qoqoback) | REST API, бизнес-логика, БД | Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, PostgreSQL |
+| [`qoqofront/`](qoqofront) | Сайт и внутренняя система | React 19, TypeScript, Vite, Material UI v9 |
+
+## Что умеет
+
+**Публичная часть** — главная страница с информацией о компании, каталогом,
+новостями и акциями. Вёрстка от мобильного: на телефоне меню в шторке, на
+десктопе — в шапке. Содержимое страницы редактируется в системе, без правки кода.
+
+**Внутренняя система** (`/app`, вход только для сотрудников):
+
+- торговый представитель оформляет заявку от торговой точки прямо с телефона;
+- склад видит отправленную заявку сразу — список сам обновляется каждые 10 секунд —
+  берёт в сборку, отмечает фактически собранное количество и отгружает;
+- справочники в логике 1С, все элементы с GUID для будущего обмена;
+- администратор заводит сотрудников по приглашению на почту;
+- редактор главной страницы: секции лендинга, новости и акции.
+
+## Роли
+
+Администратор, Директор, Бухгалтер, Торговый представитель, Склад.
+Права и статусная модель заявки описаны в [qoqoback/README.md](qoqoback/README.md).
 
 ## Быстрый старт
 
@@ -17,7 +37,13 @@
 cd qoqoback && py -3.12 -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements-dev.txt
 ```
 
-Скопировать `qoqoback/.env.example` в `qoqoback/.env` и подставить пароль от PostgreSQL, затем:
+Скопировать `qoqoback/.env.example` в `qoqoback/.env`, подставить пароль от PostgreSQL, затем:
+
+```bash
+cd qoqoback && .venv/Scripts/alembic.exe upgrade head && .venv/Scripts/python.exe -m app.scripts.seed
+```
+
+Сид напечатает ссылку для установки пароля администратора. Запуск:
 
 ```bash
 cd qoqoback && .venv/Scripts/python.exe -m uvicorn app.main:app --reload
@@ -29,12 +55,11 @@ cd qoqoback && .venv/Scripts/python.exe -m uvicorn app.main:app --reload
 cd qoqofront && npm install && npm run dev
 ```
 
-- Фронтенд: http://localhost:5173
-- API: http://localhost:8000, документация — http://localhost:8000/docs
+- Сайт: http://localhost:5173
+- Система: http://localhost:5173/app
+- API и документация: http://localhost:8000/docs
 
-Vite проксирует `/api` на бэкенд, так что настраивать `VITE_API_URL` для разработки не нужно.
-
-Подробности — в [qoqoback/README.md](qoqoback/README.md) и [qoqofront/README.md](qoqofront/README.md).
+Vite проксирует `/api` и `/media` на бэкенд, поэтому `VITE_API_URL` для разработки не нужен.
 
 ## Репозиторий
 
