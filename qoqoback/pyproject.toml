@@ -10,8 +10,26 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
-# Комментарии и строки на русском — кириллица здесь намеренная, не опечатка.
-ignore = ["RUF001", "RUF002", "RUF003"]
+ignore = [
+    # Комментарии и строки на русском — кириллица здесь намеренная, не опечатка.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # Generic[T] в pydantic-моделях надёжнее синтаксиса PEP 695.
+    "UP046",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# Объявление зависимостей в значениях аргументов — штатный приём FastAPI.
+extend-immutable-calls = [
+    "fastapi.Body",
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Header",
+    "fastapi.Path",
+    "fastapi.Query",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

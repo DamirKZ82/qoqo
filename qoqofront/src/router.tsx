@@ -1,16 +1,87 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AppLayout } from './components/AppLayout'
-import { HomePage } from './pages/HomePage'
-import { NotFoundPage } from './pages/NotFoundPage'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { ContentPage } from './pages/app/ContentPage'
+import { DashboardPage } from './pages/app/DashboardPage'
+import { OrderDetailPage } from './pages/app/OrderDetailPage'
+import { OrderFormPage } from './pages/app/OrderFormPage'
+import { OrdersPage } from './pages/app/OrdersPage'
+import { SettingsPage } from './pages/app/SettingsPage'
+import { UsersPage } from './pages/app/UsersPage'
+import { WarehousePage } from './pages/app/WarehousePage'
+import { ReferenceListPage } from './pages/app/references/ReferenceListPage'
+import { ReferencesIndexPage } from './pages/app/references/ReferencesIndexPage'
+import { LandingPage } from './pages/public/LandingPage'
+import { LoginPage } from './pages/public/LoginPage'
+import { SetPasswordPage } from './pages/public/SetPasswordPage'
 
 export const router = createBrowserRouter([
+  { path: '/', element: <LandingPage /> },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/set-password', element: <SetPasswordPage /> },
   {
-    path: '/',
-    element: <AppLayout />,
+    path: '/app',
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
-      { index: true, element: <HomePage /> },
-      { path: '*', element: <NotFoundPage /> },
+      { index: true, element: <DashboardPage /> },
+      { path: 'orders', element: <OrdersPage /> },
+      {
+        path: 'orders/new',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'sales_rep']}>
+            <OrderFormPage />
+          </ProtectedRoute>
+        ),
+      },
+      { path: 'orders/:id', element: <OrderDetailPage /> },
+      {
+        path: 'orders/:id/edit',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'sales_rep']}>
+            <OrderFormPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'warehouse',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'warehouse']}>
+            <WarehousePage />
+          </ProtectedRoute>
+        ),
+      },
+      { path: 'refs', element: <ReferencesIndexPage /> },
+      { path: 'refs/:resource', element: <ReferenceListPage /> },
+      {
+        path: 'users',
+        element: (
+          <ProtectedRoute roles={['admin']}>
+            <UsersPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'content',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'accountant']}>
+            <ContentPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <ProtectedRoute roles={['admin']}>
+            <SettingsPage />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
+  { path: '*', element: <Navigate to="/" replace /> },
 ])

@@ -38,3 +38,6 @@ Thumbs.db
 
 # Claude Code
 .claude/settings.local.json
+
+# Загруженные через настройки файлы (логотип, картинки блоков)
+qoqoback/media/
