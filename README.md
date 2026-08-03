@@ -1,5 +1,7 @@
 # qoqo
 
+[![CI](https://github.com/DamirKZ82/qoqo/actions/workflows/ci.yml/badge.svg)](https://github.com/DamirKZ82/qoqo/actions/workflows/ci.yml)
+
 Сайт и система учёта продаж для дистрибуции продукции птицефабрики QoQo.
 
 | Каталог | Что там | Стек |
@@ -66,6 +68,14 @@ cd qoqofront && npm install && npm run dev
 - API и документация: http://localhost:8000/docs
 
 Vite проксирует `/api` и `/media` на бэкенд, поэтому `VITE_API_URL` для разработки не нужен.
+
+## Проверки
+
+На каждый пуш и pull request гоняется [CI](.github/workflows/ci.yml): линтер и
+тесты бэкенда, линтер и сборка фронтенда, а отдельной джобой — миграции на
+настоящем PostgreSQL. Последняя заодно сверяет схему с моделями: если модель
+поменяли, а миграцию забыли, автогенерация выдаст непустой файл и сборка
+покраснеет.
 
 ## Развёртывание
 

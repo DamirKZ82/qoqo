@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Чтобы можно было прогнать проверки руками, не дожидаясь пуша.
+  workflow_dispatch:
+
+# Новый пуш в ветку отменяет предыдущий запуск: гонять проверки на устаревшем
+# коммите смысла нет.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Бэкенд
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qoqoback
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: qoqoback/.python-version
+          cache: pip
+          cache-dependency-path: |
+            qoqoback/requirements.txt
+            qoqoback/requirements-dev.txt
+
+      - name: Зависимости
+        run: pip install -r requirements-dev.txt
+
+      - name: Линтер
+        run: ruff check .
+
+      - name: Форматирование
+        run: ruff format --check .
+
+      - name: Тесты
+        run: python -m pytest -q
+
+      # Приложение должно подниматься там, где файловая система только для
+      # чтения, — иначе деплой на Vercel падает ещё на импорте.
+      - name: Точка входа Vercel
+        env:
+          VERCEL: '1'
+          MEDIA_ROOT: /dev/null/media
+        run: |
+          python - <<'PY'
+          import importlib.util
+
+          spec = importlib.util.spec_from_file_location('vercel_entry', 'api/index.py')
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+
+          from app.db.session import engine
+
+          assert module.app.title, 'приложение не собралось'
+          assert type(engine.pool).__name__ == 'NullPool', 'пул соединений не отключён'
+          assert not any(getattr(r, 'path', '') == '/media' for r in module.app.routes), (
+              'раздача /media не должна подключаться без записываемого каталога'
+          )
+          print('точка входа в порядке')
+          PY
+
+  migrations:
+    name: Миграции
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qoqoback
+
+    # Миграции проверяются на настоящей базе: расхождение моделей и схемы или
+    # сломанный upgrade иначе всплывут только на деплое.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qoqo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/qoqo
+      SECRET_KEY: ci-secret-not-used-anywhere
+      DEBUG: 'false'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: qoqoback/.python-version
+          cache: pip
+          cache-dependency-path: qoqoback/requirements.txt
+
+      - name: Зависимости
+        run: pip install -r requirements.txt
+
+      - name: Накатить миграции
+        run: alembic upgrade head
+
+      - name: Стартовые данные
+        run: python -m app.scripts.seed
+
+      - name: Схема совпадает с моделями
+        # Автогенерация на накатанной базе обязана дать пустую миграцию.
+        # Если в ней появились операции — модель поменяли, а миграцию забыли.
+        run: |
+          alembic revision --autogenerate --rev-id drift -m drift-check
+          file=alembic/versions/drift_drift_check.py
+          test -f "$file" || { echo '::error::Alembic не создал файл ревизии'; exit 1; }
+          if grep -qE '^\s+op\.' "$file"; then
+            echo '::error::Схема разошлась с моделями — не хватает миграции'
+            sed -n '/def upgrade/,/def downgrade/p' "$file"
+            exit 1
+          fi
+
+  frontend:
+    name: Фронтенд
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: qoqofront
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qoqofront/package-lock.json
+
+      - name: Зависимости
+        run: npm ci
+
+      - name: Линтер
+        run: npm run lint
+
+      # Сборка заодно проверяет типы: казахский словарь обязан совпасть с
+      # русским по составу ключей, иначе tsc не пройдёт.
+      - name: Сборка
+        run: npm run build
