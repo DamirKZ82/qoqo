@@ -8,6 +8,7 @@ import PeopleIcon from '@mui/icons-material/People'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import BugReportIcon from '@mui/icons-material/BugReport'
 import SettingsIcon from '@mui/icons-material/Settings'
+import TelegramIcon from '@mui/icons-material/Telegram'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
@@ -39,6 +40,7 @@ import type { UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useT, type Dictionary } from '../i18n'
 import { Logo } from './Logo'
+import { TelegramLink } from './TelegramLink'
 import { LanguageSwitch, ThemeToggle } from './Preferences'
 
 type NavGroup = 'work' | 'references' | 'administration'
@@ -138,6 +140,7 @@ export function AppLayout() {
   const { user, logout } = useAuth()
   const t = useT()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [telegramOpen, setTelegramOpen] = useState(false)
 
   const visible = navItems(t).filter(
     (item) => !item.roles || (user && item.roles.includes(user.role)),
@@ -209,6 +212,11 @@ export function AppLayout() {
               {user ? t.roles[user.role] : ''}
             </Typography>
           </Box>
+          <Tooltip title={t.telegram.title}>
+            <IconButton onClick={() => setTelegramOpen(true)} size="small">
+              <TelegramIcon fontSize="small" color={user?.telegram_linked ? 'primary' : 'inherit'} />
+            </IconButton>
+          </Tooltip>
           <Tooltip title={t.nav.logout}>
             <IconButton onClick={handleLogout} size="small">
               <LogoutIcon fontSize="small" />
@@ -275,6 +283,8 @@ export function AppLayout() {
           <Outlet />
         </Box>
       </Box>
+
+      <TelegramLink open={telegramOpen} onClose={() => setTelegramOpen(false)} />
 
       {isMobile && (
         <Paper

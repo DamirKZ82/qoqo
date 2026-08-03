@@ -27,6 +27,8 @@ export interface CurrentUser {
   organization_id: string | null
   division_id: string | null
   warehouse_id: string | null
+  /** Привязан ли Telegram — панель подсвечивает значок. */
+  telegram_linked: boolean
 }
 
 export interface AppSettings {

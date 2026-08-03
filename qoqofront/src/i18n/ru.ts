@@ -45,6 +45,22 @@ export const ru = {
       `${day} ${MONTHS_GENITIVE[month]} ${year}`,
   },
 
+  telegram: {
+    title: 'Телеграм',
+    hint: 'Привяжите учётную запись, чтобы получать уведомления по работе в Telegram.',
+    connect: 'Привязать Telegram',
+    openBot: 'Открыть бота',
+    openHint:
+        'Откройте бота по кнопке и нажмите «Старт». Пароль и почта в Telegram не передаются.',
+    code: 'Код привязки',
+    codeHint: (until: string) =>
+      `Если открываете бота на другом устройстве, отправьте ему: /start код. Код действует до ${until}.`,
+    checkLink: 'Я привязал — проверить',
+    linked: 'Учётная запись привязана',
+    linkedAt: (when: string) => `Привязано ${when}`,
+    unlink: 'Отвязать',
+    notConfigured: 'Бот не настроен: в конфигурации сервера нет TG_TOKEN.',
+  },
   common: {
     save: 'Сохранить',
     cancel: 'Отмена',

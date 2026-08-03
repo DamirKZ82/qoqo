@@ -7,6 +7,8 @@ psycopg[binary]>=3.2
 alembic>=1.14
 pyjwt>=2.10
 bcrypt>=4.2
+# Клиент для вызовов Telegram Bot API
+httpx>=0.28
 python-multipart>=0.0.20
 # S3-совместимое хранилище файлов. Нужен, только если задан S3_BUCKET,
 # импортируется лениво.

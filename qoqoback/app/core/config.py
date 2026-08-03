@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     seed_owner_email: str = "owner@qoqo.kz"
     seed_owner_password: str = "owner12345"
 
+    # Telegram-бот. Пустой tg_token — привязка в интерфейсе не предлагается.
+    tg_token: str = ""
+    # Имя бота для ссылки t.me/<имя>. Пусто — спросим у самого Telegram.
+    tg_bot_username: str = ""
+    tg_link_code_ttl_minutes: int = 15
+
     # Печатать SQL-запросы. Отдельно от debug — иначе они забивают журнал.
     db_echo: bool = False
 

@@ -27,6 +27,22 @@ export const kk: Dictionary = {
       `${year} ж. ${day} ${MONTHS[month].toLowerCase()}`,
   },
 
+  telegram: {
+    title: 'Телеграм',
+    hint: 'Жұмыс бойынша хабарламаларды Telegram-нан алу үшін тіркелгіңізді байланыстырыңыз.',
+    connect: 'Telegram байланыстыру',
+    openBot: 'Ботты ашу',
+    openHint:
+        'Түймемен ботты ашып, «Старт» басыңыз. Құпиясөз бен пошта Telegram-ға берілмейді.',
+    code: 'Байланыстыру коды',
+    codeHint: (until: string) =>
+      `Ботты басқа құрылғыда ашсаңыз, оған жіберіңіз: /start код. Код ${until} дейін жарамды.`,
+    checkLink: 'Байланыстырдым — тексеру',
+    linked: 'Тіркелгі байланыстырылған',
+    linkedAt: (when: string) => `${when} байланыстырылған`,
+    unlink: 'Ажырату',
+    notConfigured: 'Бот бапталмаған: сервер конфигурациясында TG_TOKEN жоқ.',
+  },
   common: {
     save: 'Сақтау',
     cancel: 'Болдырмау',

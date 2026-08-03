@@ -33,6 +33,7 @@ def user_payload(user: User) -> dict[str, Any]:
         "organization_id": user.organization_id,
         "division_id": user.division_id,
         "warehouse_id": user.warehouse_id,
+        "telegram_linked": user.telegram_chat_id is not None,
     }
 
 

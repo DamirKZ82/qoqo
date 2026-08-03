@@ -29,6 +29,8 @@ class UserRead(ORMModel):
     organization_id: uuid.UUID | None
     division_id: uuid.UUID | None
     warehouse_id: uuid.UUID | None
+    # Привязан ли Telegram — панель подсвечивает значок.
+    telegram_linked: bool = False
 
 
 class UserWrite(BaseModel):

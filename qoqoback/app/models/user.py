@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String, Uuid
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -65,6 +66,11 @@ class User(UUIDMixin, TimestampMixin, Base):
         nullable=False,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Привязка к Telegram. chat_id — то, куда бот шлёт уведомления.
+    telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, index=True)
+    telegram_username: Mapped[str | None] = mapped_column(String(100))
+    telegram_linked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     organization_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("organizations.id", ondelete="RESTRICT")

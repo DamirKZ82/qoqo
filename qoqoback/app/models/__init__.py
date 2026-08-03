@@ -22,6 +22,7 @@ from app.models.references import (
     Warehouse,
 )
 from app.models.settings import SETTINGS_ID, AppSettings
+from app.models.telegram import TelegramLinkCode
 from app.models.user import (
     ALL_ORDERS_ROLES,
     EDITOR_ROLES,
@@ -62,6 +63,7 @@ __all__ = [
     "OutletType",
     "PostCategory",
     "ProductCategory",
+    "TelegramLinkCode",
     "UnitOfMeasure",
     "User",
     "UserInvitation",

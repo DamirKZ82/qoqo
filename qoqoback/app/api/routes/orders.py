@@ -27,6 +27,7 @@ from app.schemas.order import (
     OrderStatusChange,
     OrderWrite,
 )
+from app.services import notifications
 from app.services.orders import visible_orders_conditions
 
 router = APIRouter(prefix="/orders", tags=["Заявки"])
@@ -318,12 +319,22 @@ def change_status(
             detail="Нельзя отправить пустую заявку — добавьте хотя бы одну позицию",
         )
 
+    previous_status = order.status
     order.status = new_status
     if payload.comment:
         order.comment = payload.comment
 
     db.commit()
     db.refresh(order)
+
+    # Уведомления после сохранения: заявка уже принята, и сбой мессенджера
+    # не должен её откатывать.
+    if previous_status == OrderStatus.DRAFT and new_status == OrderStatus.NEW:
+        notifications.order_submitted(db, order)
+    elif order.author_id != user.id:
+        # Автору сообщаем только о чужих действиях: своё он и так видит.
+        notifications.order_status_changed(db, order)
+
     return serialize_order(order)
 
 
