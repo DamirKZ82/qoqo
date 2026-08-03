@@ -27,7 +27,7 @@ from app.schemas.order import (
     OrderStatusChange,
     OrderWrite,
 )
-from app.services import notifications
+from app.services import notifications, stock
 from app.services.orders import visible_orders_conditions
 
 router = APIRouter(prefix="/orders", tags=["Заявки"])
@@ -326,6 +326,15 @@ def change_status(
 
     db.commit()
     db.refresh(order)
+
+    # Отгрузка списывает товар со склада. Делаем это до уведомлений: остаток —
+    # часть операции, а сообщение в мессенджер — нет.
+    if new_status == OrderStatus.SHIPPED:
+        stock.shipment_for_order(db, order)
+        db.commit()
+    elif previous_status == OrderStatus.SHIPPED and new_status == OrderStatus.CANCELLED:
+        stock.cancel_shipment(db, order)
+        db.commit()
 
     # Уведомления после сохранения: заявка уже принята, и сбой мессенджера
     # не должен её откатывать.

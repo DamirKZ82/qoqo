@@ -11,6 +11,7 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
+import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 
 import AppBar from '@mui/material/AppBar'
@@ -85,6 +86,13 @@ function navItems(t: Dictionary): NavItem[] {
       roles: ['admin', 'director', 'accountant', 'sales_rep'],
     },
 
+    {
+      to: '/app/stock',
+      label: t.nav.stock,
+      icon: <Inventory2Icon />,
+      group: 'work',
+      roles: ['admin', 'director', 'accountant', 'warehouse'],
+    },
     {
       to: '/app/refs/outlets',
       label: t.nav.outlets,

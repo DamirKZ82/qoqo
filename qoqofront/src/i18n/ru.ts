@@ -101,6 +101,7 @@ export const ru = {
   },
 
   nav: {
+    stock: 'Остатки',
     logs: 'Журнал ошибок',
     groups: {
       work: 'Работа',

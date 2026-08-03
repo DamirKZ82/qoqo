@@ -83,6 +83,7 @@ export const kk: Dictionary = {
   },
 
   nav: {
+    stock: 'Қалдықтар',
     logs: 'Қателер журналы',
     groups: {
       work: 'Жұмыс',
