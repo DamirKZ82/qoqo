@@ -85,6 +85,7 @@ export const ru = {
   },
 
   nav: {
+    logs: 'Журнал ошибок',
     groups: {
       work: 'Работа',
       references: 'Справочники',

@@ -1,4 +1,5 @@
 from app.models.content import BLOCK_TITLES, BlockType, ContentBlock
+from app.models.error_log import SOURCE_TITLES, ErrorLog, LogLevel, LogSource
 from app.models.invitation import InvitationPurpose, UserInvitation
 from app.models.news import CATEGORY_TITLES, NewsPost, PostCategory
 from app.models.order import (
@@ -38,6 +39,7 @@ __all__ = [
     "FULFILMENT_ROLES",
     "ROLE_TITLES",
     "SETTINGS_ID",
+    "SOURCE_TITLES",
     "STATUS_TITLES",
     "STATUS_TRANSITIONS",
     "AppSettings",
@@ -46,7 +48,10 @@ __all__ = [
     "Contract",
     "Counterparty",
     "Division",
+    "ErrorLog",
     "InvitationPurpose",
+    "LogLevel",
+    "LogSource",
     "NewsPost",
     "Nomenclature",
     "Order",

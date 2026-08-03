@@ -12,7 +12,10 @@ settings = get_settings()
 
 # Синхронный движок: на Windows асинхронный psycopg несовместим с ProactorEventLoop,
 # который asyncio использует по умолчанию. FastAPI выполняет sync-зависимости в пуле потоков.
-engine_options: dict[str, Any] = {"echo": settings.debug, "pool_pre_ping": True}
+# echo включается отдельной настройкой, а не через debug: при echo=True
+# SQLAlchemy сам поднимает уровень своего логгера и забивает файл журнала
+# текстами запросов, из-за чего ошибки в нём не найти.
+engine_options: dict[str, Any] = {"echo": settings.db_echo, "pool_pre_ping": True}
 
 # На serverless процесс живёт от вызова к вызову: переиспользовать пул некому,
 # а лимит подключений базы он выедает. Vercel сам выставляет VERCEL=1, но

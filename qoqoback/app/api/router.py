@@ -4,6 +4,7 @@ from app.api.routes import (
     auth,
     content,
     health,
+    logs,
     news,
     orders,
     references,
@@ -14,6 +15,7 @@ from app.api.routes import (
 
 api_router = APIRouter()
 api_router.include_router(health.router)
+api_router.include_router(logs.router)
 api_router.include_router(settings.router)
 api_router.include_router(content.router)
 api_router.include_router(news.router)

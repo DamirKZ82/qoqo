@@ -6,6 +6,7 @@ import LogoutIcon from '@mui/icons-material/Logout'
 import MenuIcon from '@mui/icons-material/Menu'
 import PeopleIcon from '@mui/icons-material/People'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import BugReportIcon from '@mui/icons-material/BugReport'
 import SettingsIcon from '@mui/icons-material/Settings'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
@@ -103,6 +104,13 @@ function navItems(t: Dictionary): NavItem[] {
       icon: <ViewQuiltIcon />,
       group: 'administration',
       roles: ['admin', 'director', 'accountant'],
+    },
+    {
+      to: '/app/logs',
+      label: t.nav.logs,
+      icon: <BugReportIcon />,
+      group: 'administration',
+      roles: ['admin'],
     },
     {
       to: '/app/settings',

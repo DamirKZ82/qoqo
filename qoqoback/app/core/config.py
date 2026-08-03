@@ -31,6 +31,15 @@ class Settings(BaseSettings):
     seed_owner_email: str = "owner@qoqo.kz"
     seed_owner_password: str = "owner12345"
 
+    # Печатать SQL-запросы. Отдельно от debug — иначе они забивают журнал.
+    db_echo: bool = False
+
+    # Логирование. Пустой log_file — писать только в консоль.
+    log_level: str = "INFO"
+    log_file: str = "logs/qoqo.log"
+    log_max_bytes: int = 5 * 1024 * 1024
+    log_backup_count: int = 5
+
     # Каталог для загруженных файлов (логотип и т.п.), раздаётся по /media.
     # Используется, только когда не настроен бакет.
     media_root: str = "media"

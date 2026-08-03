@@ -7,11 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__
+from app.api.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.api.router import api_router
 from app.core.config import get_settings
+from app.core.logging import configure_logging
 from app.db.session import engine
 
 settings = get_settings()
+
+# Логи настраиваем до создания приложения, чтобы стартовые сообщения не потерялись.
+configure_logging()
 
 media_root = Path(settings.media_root)
 
@@ -29,12 +34,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Порядок важен: CORS добавляется последним, поэтому отработает первым и
+# проставит заголовки даже на ответ с ошибкой.
+app.add_middleware(RequestContextMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Иначе браузер не увидит идентификатор запроса в ответе.
+    expose_headers=[REQUEST_ID_HEADER],
 )
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)

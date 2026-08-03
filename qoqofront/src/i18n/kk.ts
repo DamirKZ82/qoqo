@@ -67,6 +67,7 @@ export const kk: Dictionary = {
   },
 
   nav: {
+    logs: 'Қателер журналы',
     groups: {
       work: 'Жұмыс',
       references: 'Анықтамалықтар',
