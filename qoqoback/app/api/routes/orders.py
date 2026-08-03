@@ -27,7 +27,7 @@ from app.schemas.order import (
     OrderStatusChange,
     OrderWrite,
 )
-from app.services import notifications, stock
+from app.services import notifications, settlements, stock
 from app.services.orders import visible_orders_conditions
 
 router = APIRouter(prefix="/orders", tags=["Заявки"])
@@ -318,6 +318,24 @@ def change_status(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Нельзя отправить пустую заявку — добавьте хотя бы одну позицию",
         )
+
+    # Кредитный лимит проверяем при отправке на склад: до этого заявка ещё
+    # черновик и обязательств не создаёт.
+    #
+    # Директор и администратор ограничением не связаны, но добраться до чужого
+    # черновика они не могут — черновики видны только автору. На практике это
+    # значит: представителю заявку сверх лимита не отправить, и разблокировать
+    # её можно, подняв лимит в договоре.
+    if order.status == OrderStatus.DRAFT and new_status == OrderStatus.NEW:
+        exceeded, debt, limit = settlements.credit_limit_exceeded(db, order)
+        if exceeded and user.role not in (UserRole.ADMIN, UserRole.DIRECTOR):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Превышен кредитный лимит по договору: долг {debt} ₸ "
+                    f"плюс заявка {order.total_amount} ₸ при лимите {limit} ₸"
+                ),
+            )
 
     previous_status = order.status
     order.status = new_status

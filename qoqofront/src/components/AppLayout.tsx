@@ -11,6 +11,7 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 
@@ -86,6 +87,13 @@ function navItems(t: Dictionary): NavItem[] {
       roles: ['admin', 'director', 'accountant', 'sales_rep'],
     },
 
+    {
+      to: '/app/settlements',
+      label: t.nav.settlements,
+      icon: <AccountBalanceWalletIcon />,
+      group: 'work',
+      roles: ['admin', 'director', 'accountant'],
+    },
     {
       to: '/app/stock',
       label: t.nav.stock,

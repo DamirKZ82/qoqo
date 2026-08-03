@@ -10,6 +10,7 @@ import { OrdersPage } from './pages/app/OrdersPage'
 import { ReportsPage } from './pages/app/ReportsPage'
 import { LogsPage } from './pages/app/LogsPage'
 import { SettingsPage } from './pages/app/SettingsPage'
+import { SettlementsPage } from './pages/app/SettlementsPage'
 import { StockPage } from './pages/app/StockPage'
 import { UsersPage } from './pages/app/UsersPage'
 import { WarehousePage } from './pages/app/WarehousePage'
@@ -63,6 +64,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={['admin', 'director', 'accountant', 'sales_rep']}>
             <ReportsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'settlements',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'accountant']}>
+            <SettlementsPage />
           </ProtectedRoute>
         ),
       },

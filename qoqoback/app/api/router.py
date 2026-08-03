@@ -10,6 +10,7 @@ from app.api.routes import (
     references,
     reports,
     settings,
+    settlements,
     stock,
     telegram,
     users,
@@ -25,6 +26,7 @@ api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(orders.router)
 api_router.include_router(reports.router)
+api_router.include_router(settlements.router)
 api_router.include_router(stock.router)
 api_router.include_router(telegram.router)
 api_router.include_router(references.router)

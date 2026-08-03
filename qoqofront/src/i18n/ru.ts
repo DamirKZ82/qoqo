@@ -101,6 +101,7 @@ export const ru = {
   },
 
   nav: {
+    settlements: 'Взаиморасчёты',
     stock: 'Остатки',
     logs: 'Журнал ошибок',
     groups: {

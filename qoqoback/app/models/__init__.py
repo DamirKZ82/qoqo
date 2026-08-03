@@ -9,6 +9,7 @@ from app.models.order import (
     OrderLine,
     OrderStatus,
 )
+from app.models.payment import METHOD_TITLES, Payment, PaymentMethod
 from app.models.references import (
     Contract,
     Counterparty,
@@ -45,6 +46,7 @@ __all__ = [
     "CATEGORY_TITLES",
     "EDITOR_ROLES",
     "FULFILMENT_ROLES",
+    "METHOD_TITLES",
     "ROLE_TITLES",
     "SETTINGS_ID",
     "SOURCE_TITLES",
@@ -68,6 +70,8 @@ __all__ = [
     "Organization",
     "Outlet",
     "OutletType",
+    "Payment",
+    "PaymentMethod",
     "PostCategory",
     "ProductCategory",
     "StockDocument",
