@@ -36,72 +36,83 @@ import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-rout
 
 import type { UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { useT, type Dictionary } from '../i18n'
 import { Logo } from './Logo'
+import { LanguageSwitch, ThemeToggle } from './Preferences'
+
+type NavGroup = 'work' | 'references' | 'administration'
 
 interface NavItem {
   to: string
   label: string
   icon: ReactElement
   roles?: UserRole[]
-  group: 'Работа' | 'Справочники' | 'Администрирование'
+  group: NavGroup
   /** Показывать в нижней панели на телефоне. */
   mobile?: boolean
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/app', label: 'Сводка', icon: <DashboardIcon />, group: 'Работа', mobile: true },
-  { to: '/app/orders', label: 'Заявки', icon: <ReceiptLongIcon />, group: 'Работа', mobile: true },
-  {
-    to: '/app/orders/new',
-    label: 'Новая заявка',
-    icon: <AddCircleIcon />,
-    group: 'Работа',
-    roles: ['admin', 'director', 'sales_rep'],
-    mobile: true,
-  },
-  {
-    to: '/app/warehouse',
-    label: 'Склад',
-    icon: <WarehouseIcon />,
-    group: 'Работа',
-    roles: ['admin', 'director', 'warehouse'],
-    mobile: true,
-  },
-  {
-    to: '/app/reports',
-    label: 'Отчёты',
-    icon: <BarChartIcon />,
-    group: 'Работа',
-    roles: ['admin', 'director', 'accountant', 'sales_rep'],
-  },
+const GROUPS: NavGroup[] = ['work', 'references', 'administration']
 
-  { to: '/app/refs/outlets', label: 'Торговые точки', icon: <StorefrontIcon />, group: 'Справочники' },
-  { to: '/app/refs', label: 'Все справочники', icon: <ArticleIcon />, group: 'Справочники' },
+function navItems(t: Dictionary): NavItem[] {
+  return [
+    { to: '/app', label: t.nav.dashboard, icon: <DashboardIcon />, group: 'work', mobile: true },
+    { to: '/app/orders', label: t.nav.orders, icon: <ReceiptLongIcon />, group: 'work', mobile: true },
+    {
+      to: '/app/orders/new',
+      label: t.nav.newOrder,
+      icon: <AddCircleIcon />,
+      group: 'work',
+      roles: ['admin', 'director', 'sales_rep'],
+      mobile: true,
+    },
+    {
+      to: '/app/warehouse',
+      label: t.nav.warehouse,
+      icon: <WarehouseIcon />,
+      group: 'work',
+      roles: ['admin', 'director', 'warehouse'],
+      mobile: true,
+    },
+    {
+      to: '/app/reports',
+      label: t.nav.reports,
+      icon: <BarChartIcon />,
+      group: 'work',
+      roles: ['admin', 'director', 'accountant', 'sales_rep'],
+    },
 
-  {
-    to: '/app/users',
-    label: 'Сотрудники',
-    icon: <PeopleIcon />,
-    group: 'Администрирование',
-    roles: ['admin'],
-  },
-  {
-    to: '/app/content',
-    label: 'Главная страница',
-    icon: <ViewQuiltIcon />,
-    group: 'Администрирование',
-    roles: ['admin', 'director', 'accountant'],
-  },
-  {
-    to: '/app/settings',
-    label: 'Настройки',
-    icon: <SettingsIcon />,
-    group: 'Администрирование',
-    roles: ['admin'],
-  },
-]
+    {
+      to: '/app/refs/outlets',
+      label: t.nav.outlets,
+      icon: <StorefrontIcon />,
+      group: 'references',
+    },
+    { to: '/app/refs', label: t.nav.allReferences, icon: <ArticleIcon />, group: 'references' },
 
-const GROUPS = ['Работа', 'Справочники', 'Администрирование'] as const
+    {
+      to: '/app/users',
+      label: t.nav.users,
+      icon: <PeopleIcon />,
+      group: 'administration',
+      roles: ['admin'],
+    },
+    {
+      to: '/app/content',
+      label: t.nav.content,
+      icon: <ViewQuiltIcon />,
+      group: 'administration',
+      roles: ['admin', 'director', 'accountant'],
+    },
+    {
+      to: '/app/settings',
+      label: t.nav.settings,
+      icon: <SettingsIcon />,
+      group: 'administration',
+      roles: ['admin'],
+    },
+  ]
+}
 
 function initials(name: string): string {
   return name
@@ -117,9 +128,10 @@ export function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const t = useT()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const visible = NAV_ITEMS.filter(
+  const visible = navItems(t).filter(
     (item) => !item.roles || (user && item.roles.includes(user.role)),
   )
   const mobileItems = visible.filter((item) => item.mobile).slice(0, 4)
@@ -152,7 +164,7 @@ export function AppLayout() {
               dense
               subheader={
                 <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '32px' }}>
-                  {group}
+                  {t.nav.groups[group]}
                 </ListSubheader>
               }
             >
@@ -175,6 +187,10 @@ export function AppLayout() {
 
       <Divider />
       <Box sx={{ p: 2 }}>
+        <Stack direction="row" spacing={0.5} sx={{ mb: 1, alignItems: 'center' }}>
+          <LanguageSwitch />
+          <ThemeToggle />
+        </Stack>
         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
           <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36, fontSize: 14 }}>
             {user ? initials(user.full_name) : '?'}
@@ -184,10 +200,10 @@ export function AppLayout() {
               {user?.full_name}
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap component="div">
-              {user?.role_title}
+              {user ? t.roles[user.role] : ''}
             </Typography>
           </Box>
-          <Tooltip title="Выйти">
+          <Tooltip title={t.nav.logout}>
             <IconButton onClick={handleLogout} size="small">
               <LogoutIcon fontSize="small" />
             </IconButton>
@@ -198,7 +214,7 @@ export function AppLayout() {
   )
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F7F8F7' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       {!isMobile && (
         <Drawer
           variant="permanent"
@@ -220,13 +236,18 @@ export function AppLayout() {
 
       <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         {isMobile && (
-          <AppBar position="sticky" sx={{ bgcolor: '#fff', borderBottom: 1, borderColor: 'divider' }}>
+          <AppBar
+            position="sticky"
+            sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+          >
             <Toolbar sx={{ gap: 1 }}>
-              <IconButton edge="start" onClick={() => setDrawerOpen(true)} aria-label="Меню">
+              <IconButton edge="start" onClick={() => setDrawerOpen(true)} aria-label={t.nav.menu}>
                 <MenuIcon />
               </IconButton>
               <Logo height={28} />
               <Box sx={{ flexGrow: 1 }} />
+              <LanguageSwitch />
+              <ThemeToggle />
               <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 13 }}>
                 {user ? initials(user.full_name) : '?'}
               </Avatar>

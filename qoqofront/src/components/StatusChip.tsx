@@ -2,18 +2,25 @@ import Chip from '@mui/material/Chip'
 import type { ChipProps } from '@mui/material/Chip'
 
 import type { OrderStatus } from '../api/types'
+import { useT } from '../i18n'
 
-const STATUS_STYLES: Record<OrderStatus, { label: string; color: ChipProps['color'] }> = {
-  draft: { label: 'Черновик', color: 'default' },
-  new: { label: 'Новая', color: 'secondary' },
-  assembling: { label: 'В сборке', color: 'warning' },
-  assembled: { label: 'Собрана', color: 'info' },
-  shipped: { label: 'Отгружена', color: 'primary' },
-  delivered: { label: 'Доставлена', color: 'success' },
-  cancelled: { label: 'Отменена', color: 'error' },
+const STATUS_COLORS: Record<OrderStatus, ChipProps['color']> = {
+  draft: 'default',
+  new: 'secondary',
+  assembling: 'warning',
+  assembled: 'info',
+  shipped: 'primary',
+  delivered: 'success',
+  cancelled: 'error',
 }
 
-export function StatusChip({ status, size = 'small' }: { status: OrderStatus; size?: 'small' | 'medium' }) {
-  const style = STATUS_STYLES[status] ?? { label: status, color: 'default' as const }
-  return <Chip size={size} label={style.label} color={style.color} />
+export function StatusChip({
+  status,
+  size = 'small',
+}: {
+  status: OrderStatus
+  size?: 'small' | 'medium'
+}) {
+  const t = useT()
+  return <Chip size={size} label={t.status[status] ?? status} color={STATUS_COLORS[status]} />
 }

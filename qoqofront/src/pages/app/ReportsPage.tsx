@@ -33,6 +33,7 @@ import {
   type ReportFilters,
 } from '../../api/queries'
 import type { PeriodGroup, ReferenceItem, ReportDimension, ReportTotals } from '../../api/types'
+import { useLanguage, useT, type Dictionary } from '../../i18n'
 import {
   formatDate,
   formatMoney,
@@ -41,30 +42,25 @@ import {
   toDateInput,
 } from '../../lib/format'
 import { SalesChart } from '../../components/SalesChart'
-import { brand } from '../../theme'
+import { periodTitle } from '../../lib/periods'
 
-const DIMENSIONS: { value: ReportDimension; label: string; unit: string }[] = [
-  { value: 'outlet', label: 'Торговые точки', unit: 'Точка' },
-  { value: 'counterparty', label: 'Контрагенты', unit: 'Контрагент' },
-  { value: 'nomenclature', label: 'Номенклатура', unit: 'Позиция' },
-  { value: 'category', label: 'Группы', unit: 'Группа' },
-  { value: 'sales_rep', label: 'Представители', unit: 'Сотрудник' },
-  { value: 'warehouse', label: 'Склады', unit: 'Склад' },
+const DIMENSIONS: ReportDimension[] = [
+  'outlet',
+  'counterparty',
+  'nomenclature',
+  'category',
+  'sales_rep',
+  'warehouse',
 ]
 
-const GROUPS: { value: PeriodGroup; label: string }[] = [
-  { value: 'day', label: 'Дни' },
-  { value: 'week', label: 'Недели' },
-  { value: 'month', label: 'Месяцы' },
-]
+const GROUPS: PeriodGroup[] = ['day', 'week', 'month']
 
-type PresetKey = 'week' | 'month' | 'prev_month' | 'quarter' | 'year'
+type PresetKey = keyof Dictionary['reports']['presets']
 
 /** Готовые периоды: их выбирают в 9 случаях из 10, руками даты почти не вводят. */
-const PRESETS: { key: PresetKey; label: string; range: () => [Date, Date]; group: PeriodGroup }[] = [
+const PRESETS: { key: PresetKey; range: () => [Date, Date]; group: PeriodGroup }[] = [
   {
     key: 'week',
-    label: '7 дней',
     group: 'day',
     range: () => {
       const today = new Date()
@@ -75,7 +71,6 @@ const PRESETS: { key: PresetKey; label: string; range: () => [Date, Date]; group
   },
   {
     key: 'month',
-    label: '30 дней',
     group: 'day',
     range: () => {
       const today = new Date()
@@ -85,8 +80,7 @@ const PRESETS: { key: PresetKey; label: string; range: () => [Date, Date]; group
     },
   },
   {
-    key: 'prev_month',
-    label: 'Прошлый месяц',
+    key: 'prevMonth',
     group: 'day',
     range: () => {
       const today = new Date()
@@ -97,7 +91,6 @@ const PRESETS: { key: PresetKey; label: string; range: () => [Date, Date]; group
   },
   {
     key: 'quarter',
-    label: 'Квартал',
     group: 'week',
     range: () => {
       const today = new Date()
@@ -108,7 +101,6 @@ const PRESETS: { key: PresetKey; label: string; range: () => [Date, Date]; group
   },
   {
     key: 'year',
-    label: 'Год',
     group: 'month',
     range: () => {
       const today = new Date()
@@ -164,6 +156,8 @@ function Tile({ label, value, hint, growth, loading }: TileProps) {
 }
 
 export function ReportsPage() {
+  const t = useT()
+  const { language } = useLanguage()
   const [preset, setPreset] = useState<PresetKey | null>('month')
   const [groupBy, setGroupBy] = useState<PeriodGroup>('day')
   const [dimension, setDimension] = useState<ReportDimension>('outlet')
@@ -211,27 +205,25 @@ export function ReportsPage() {
   async function handleExport() {
     setExportError(null)
     try {
-      await downloadBreakdownCsv(filters, dimension)
+      await downloadBreakdownCsv(filters, dimension, language)
     } catch (cause) {
-      setExportError(errorMessage(cause, 'Не удалось выгрузить файл'))
+      setExportError(errorMessage(cause, t.reports.exportFailed))
     }
   }
 
   const totals: ReportTotals | undefined = report?.totals
   const previous: ReportTotals | undefined = report?.previous
   const comparison = report
-    ? `Изменение — к периоду ${formatDate(report.previous_from)} — ${formatDate(report.previous_to)}`
+    ? t.reports.comparison(formatDate(report.previous_from), formatDate(report.previous_to))
     : null
   const hasSales = (report?.series ?? []).some((point) => Number(point.total_amount) > 0)
-  const dimensionLabel = DIMENSIONS.find((item) => item.value === dimension)?.unit ?? 'Элемент'
+  const dimensionLabel = t.reports.dimensionColumn[dimension] ?? t.reports.element
 
   return (
     <Stack spacing={3}>
       <Box>
-        <Typography variant="h4">Отчёты</Typography>
-        <Typography color="text.secondary">
-          Продажи по отправленным заявкам. Черновики и отменённые не учитываются.
-        </Typography>
+        <Typography variant="h4">{t.reports.title}</Typography>
+        <Typography color="text.secondary">{t.reports.subtitle}</Typography>
       </Box>
 
       <Card>
@@ -246,7 +238,7 @@ export function ReportsPage() {
             >
               {PRESETS.map((item) => (
                 <ToggleButton key={item.key} value={item.key}>
-                  {item.label}
+                  {t.reports.presets[item.key]}
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
@@ -254,7 +246,7 @@ export function ReportsPage() {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }}>
               <TextField
                 type="date"
-                label="С"
+                label={t.reports.dateFrom}
                 value={dateFrom}
                 onChange={(event) => {
                   setDateFrom(event.target.value)
@@ -264,7 +256,7 @@ export function ReportsPage() {
               />
               <TextField
                 type="date"
-                label="По"
+                label={t.reports.dateTo}
                 value={dateTo}
                 onChange={(event) => {
                   setDateTo(event.target.value)
@@ -274,12 +266,12 @@ export function ReportsPage() {
               />
               <TextField
                 select
-                label="Склад"
+                label={t.reports.warehouse}
                 value={warehouseId}
                 onChange={(event) => setWarehouseId(event.target.value)}
                 sx={{ minWidth: 180 }}
               >
-                <MenuItem value="">Все склады</MenuItem>
+                <MenuItem value="">{t.reports.allWarehouses}</MenuItem>
                 {warehouses?.items.map((item) => (
                   <MenuItem key={item.id} value={item.id}>
                     {item.name}
@@ -288,12 +280,12 @@ export function ReportsPage() {
               </TextField>
               <TextField
                 select
-                label="Контрагент"
+                label={t.reports.counterparty}
                 value={counterpartyId}
                 onChange={(event) => setCounterpartyId(event.target.value)}
                 sx={{ minWidth: 200 }}
               >
-                <MenuItem value="">Все контрагенты</MenuItem>
+                <MenuItem value="">{t.reports.allCounterparties}</MenuItem>
                 {counterparties?.items.map((item) => (
                   <MenuItem key={item.id} value={item.id}>
                     {item.name}
@@ -305,7 +297,7 @@ export function ReportsPage() {
         </CardContent>
       </Card>
 
-      {error && <Alert severity="error">{errorMessage(error, 'Не удалось загрузить отчёт')}</Alert>}
+      {error && <Alert severity="error">{errorMessage(error, t.reports.loadFailed)}</Alert>}
 
       <Box
         sx={{
@@ -315,28 +307,28 @@ export function ReportsPage() {
         }}
       >
         <Tile
-          label="Сумма продаж"
+          label={t.reports.amount}
           value={formatMoney(totals?.total_amount)}
           growth={growthPercent(totals?.total_amount, previous?.total_amount)}
           loading={isPending}
         />
         <Tile
-          label="Заявок"
+          label={t.reports.orders}
           value={String(totals?.orders_count ?? 0)}
-          hint={`позиций: ${totals?.positions_count ?? 0}`}
+          hint={t.reports.linesHint(totals?.positions_count ?? 0)}
           growth={growthPercent(totals?.orders_count, previous?.orders_count)}
           loading={isPending}
         />
         <Tile
-          label="Средний чек"
+          label={t.reports.averageCheck}
           value={formatMoney(totals?.average_check)}
           growth={growthPercent(totals?.average_check, previous?.average_check)}
           loading={isPending}
         />
         <Tile
-          label="Торговых точек"
+          label={t.reports.outlets}
           value={String(totals?.outlets_count ?? 0)}
-          hint={`продано: ${formatQuantity(totals?.quantity)}`}
+          hint={t.reports.quantityHint(formatQuantity(totals?.quantity))}
           growth={growthPercent(totals?.outlets_count, previous?.outlets_count)}
           loading={isPending}
         />
@@ -355,7 +347,7 @@ export function ReportsPage() {
             spacing={2}
             sx={{ mb: 2, justifyContent: 'space-between', alignItems: { sm: 'center' } }}
           >
-            <Typography variant="h5">Динамика продаж</Typography>
+            <Typography variant="h5">{t.reports.dynamics}</Typography>
             <Stack direction="row" spacing={1}>
               <ToggleButtonGroup
                 size="small"
@@ -364,8 +356,8 @@ export function ReportsPage() {
                 onChange={(_, value: PeriodGroup | null) => value && setGroupBy(value)}
               >
                 {GROUPS.map((item) => (
-                  <ToggleButton key={item.value} value={item.value}>
-                    {item.label}
+                  <ToggleButton key={item} value={item}>
+                    {t.reports.groups[item]}
                   </ToggleButton>
                 ))}
               </ToggleButtonGroup>
@@ -375,10 +367,10 @@ export function ReportsPage() {
                 value={asTable ? 'table' : 'chart'}
                 onChange={(_, value: string | null) => value && setAsTable(value === 'table')}
               >
-                <ToggleButton value="chart" aria-label="Графиком">
+                <ToggleButton value="chart" aria-label={t.reports.asChart}>
                   <ShowChartIcon fontSize="small" />
                 </ToggleButton>
-                <ToggleButton value="table" aria-label="Таблицей">
+                <ToggleButton value="table" aria-label={t.reports.asTable}>
                   <TableRowsIcon fontSize="small" />
                 </ToggleButton>
               </ToggleButtonGroup>
@@ -389,26 +381,26 @@ export function ReportsPage() {
 
           {!isPending && !hasSales && (
             <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>
-              За выбранный период продаж не было.
+              {t.reports.noSales}
             </Typography>
           )}
 
-          {!isPending && hasSales && !asTable && <SalesChart points={report?.series ?? []} />}
+          {!isPending && hasSales && !asTable && <SalesChart points={report?.series ?? []} groupBy={groupBy} />}
 
           {!isPending && hasSales && asTable && (
             <Box sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 420 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Период</TableCell>
-                    <TableCell align="right">Заявок</TableCell>
-                    <TableCell align="right">Сумма</TableCell>
+                    <TableCell>{t.reports.period}</TableCell>
+                    <TableCell align="right">{t.reports.ordersColumn}</TableCell>
+                    <TableCell align="right">{t.reports.amountColumn}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {report?.series.map((point) => (
                     <TableRow key={point.period}>
-                      <TableCell>{point.title}</TableCell>
+                      <TableCell>{periodTitle(point.period, groupBy, t)}</TableCell>
                       <TableCell align="right">{point.orders_count}</TableCell>
                       <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                         {formatMoney(point.total_amount)}
@@ -429,9 +421,9 @@ export function ReportsPage() {
             spacing={2}
             sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' } }}
           >
-            <Typography variant="h5">В разрезе</Typography>
+            <Typography variant="h5">{t.reports.breakdown}</Typography>
             <Button size="small" startIcon={<DownloadIcon />} onClick={handleExport}>
-              Выгрузить CSV
+              {t.reports.exportCsv}
             </Button>
           </Stack>
 
@@ -444,7 +436,7 @@ export function ReportsPage() {
             sx={{ mb: 1 }}
           >
             {DIMENSIONS.map((item) => (
-              <Tab key={item.value} value={item.value} label={item.label} />
+              <Tab key={item} value={item} label={t.reports.dimensions[item]} />
             ))}
           </Tabs>
 
@@ -458,7 +450,7 @@ export function ReportsPage() {
 
           {!breakdownPending && breakdown?.rows.length === 0 && (
             <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-              Данных за период нет.
+              {t.reports.noData}
             </Typography>
           )}
 
@@ -468,11 +460,11 @@ export function ReportsPage() {
                 <TableHead>
                   <TableRow>
                     <TableCell>{dimensionLabel}</TableCell>
-                    <TableCell align="right">Заявок</TableCell>
-                    <TableCell align="right">Количество</TableCell>
-                    <TableCell align="right">Сумма</TableCell>
+                    <TableCell align="right">{t.reports.ordersColumn}</TableCell>
+                    <TableCell align="right">{t.reports.quantity}</TableCell>
+                    <TableCell align="right">{t.reports.amountColumn}</TableCell>
                     <TableCell align="right" sx={{ minWidth: 120 }}>
-                      Доля
+                      {t.reports.share}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -496,8 +488,8 @@ export function ReportsPage() {
                               flexGrow: 1,
                               height: 6,
                               borderRadius: 3,
-                              bgcolor: 'rgba(0, 83, 59, 0.12)',
-                              '& .MuiLinearProgress-bar': { bgcolor: brand.green },
+                              bgcolor: 'action.selected',
+                              '& .MuiLinearProgress-bar': { bgcolor: 'primary.main' },
                             }}
                           />
                           <Typography
@@ -516,9 +508,10 @@ export function ReportsPage() {
 
               {breakdown && Number(breakdown.shown_amount) < Number(breakdown.total_amount) && (
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Показаны первые {breakdown.rows.length} по сумме. Остальное —{' '}
-                  {formatMoney(Number(breakdown.total_amount) - Number(breakdown.shown_amount))}, они
-                  есть в выгрузке CSV.
+                  {t.reports.tail(
+                    breakdown.rows.length,
+                    formatMoney(Number(breakdown.total_amount) - Number(breakdown.shown_amount)),
+                  )}
                 </Typography>
               )}
             </Box>

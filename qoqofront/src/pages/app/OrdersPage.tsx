@@ -16,17 +16,18 @@ import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import { useOrders } from '../../api/queries'
 import { useAuth } from '../../auth/AuthContext'
 import { OrderCard } from '../../components/OrderCard'
+import { useT } from '../../i18n'
 
 const STATUS_TABS = [
-  { value: '', label: 'Все' },
-  { value: 'draft', label: 'Черновики' },
-  { value: 'new', label: 'Новые' },
-  { value: 'assembling', label: 'В сборке' },
-  { value: 'assembled', label: 'Собраны' },
-  { value: 'shipped', label: 'Отгружены' },
-  { value: 'delivered', label: 'Доставлены' },
-  { value: 'cancelled', label: 'Отменены' },
-]
+  '',
+  'draft',
+  'new',
+  'assembling',
+  'assembled',
+  'shipped',
+  'delivered',
+  'cancelled',
+] as const
 
 const PAGE_SIZE = 30
 
@@ -36,6 +37,7 @@ export function OrdersPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const { hasRole } = useAuth()
+  const t = useT()
 
   const { data, isPending } = useOrders(
     {
@@ -58,7 +60,7 @@ export function OrdersPage() {
     <Stack spacing={2}>
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
-          Заявки
+          {t.orders.title}
         </Typography>
         {hasRole('admin', 'director', 'sales_rep') && (
           <Button
@@ -67,7 +69,7 @@ export function OrdersPage() {
             variant="contained"
             startIcon={<AddCircleIcon />}
           >
-            Новая
+            {t.orders.create}
           </Button>
         )}
       </Stack>
@@ -80,12 +82,12 @@ export function OrdersPage() {
         allowScrollButtonsMobile
       >
         {STATUS_TABS.map((tab) => (
-          <Tab key={tab.value} value={tab.value} label={tab.label} />
+          <Tab key={tab} value={tab} label={t.statusPlural[tab === '' ? 'all' : tab]} />
         ))}
       </Tabs>
 
       <TextField
-        placeholder="Номер заявки, например 12 или ЗК-000012"
+        placeholder={t.orders.searchPlaceholder}
         value={search}
         onChange={(event) => {
           setSearch(event.target.value)
@@ -111,7 +113,7 @@ export function OrdersPage() {
 
       {data && data.items.length === 0 && (
         <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
-          Заявок не найдено.
+          {t.orders.empty}
         </Typography>
       )}
 
@@ -124,7 +126,7 @@ export function OrdersPage() {
       {totalPages > 1 && (
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'center' }}>
           <Button disabled={page === 0} onClick={() => setPage((value) => value - 1)}>
-            Назад
+            {t.common.previous}
           </Button>
           <TextField
             select
@@ -135,7 +137,7 @@ export function OrdersPage() {
           >
             {Array.from({ length: totalPages }, (_, index) => (
               <MenuItem key={index} value={index}>
-                {index + 1} из {totalPages}
+                {t.common.pageOf(index + 1, totalPages)}
               </MenuItem>
             ))}
           </TextField>
@@ -143,7 +145,7 @@ export function OrdersPage() {
             disabled={page >= totalPages - 1}
             onClick={() => setPage((value) => value + 1)}
           >
-            Вперёд
+            {t.common.next}
           </Button>
         </Stack>
       )}

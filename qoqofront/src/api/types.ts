@@ -176,9 +176,8 @@ export interface ReportTotals {
 }
 
 export interface SalesPoint {
+  /** Начало периода, ISO-дата. Подпись собирается на клиенте по языку. */
   period: string
-  label: string
-  title: string
   orders_count: number
   total_amount: string
 }

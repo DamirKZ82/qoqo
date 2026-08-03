@@ -8,10 +8,13 @@ import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router-dom'
 
 import type { Order } from '../api/types'
+import { useT } from '../i18n'
 import { formatDate, formatMoney } from '../lib/format'
 import { StatusChip } from './StatusChip'
 
 export function OrderCard({ order }: { order: Order }) {
+  const t = useT()
+
   return (
     <Card>
       <CardActionArea component={RouterLink} to={`/app/orders/${order.id}`}>
@@ -37,8 +40,11 @@ export function OrderCard({ order }: { order: Order }) {
             )}
 
             <Typography variant="caption" color="text.secondary">
-              Доставка: {formatDate(order.delivery_date)} · позиций: {order.lines_count} ·{' '}
-              {order.author_name}
+              {t.orders.delivery(
+                formatDate(order.delivery_date),
+                order.lines_count,
+                order.author_name,
+              )}
             </Typography>
           </Stack>
         </CardContent>

@@ -34,14 +34,18 @@ import { mediaUrl } from '../../api/client'
 import { useContentBlocks, useNews, useSettings } from '../../api/queries'
 import type { ContentBlock } from '../../api/types'
 import { Logo } from '../../components/Logo'
+import { LanguageSwitch, ThemeToggle } from '../../components/Preferences'
+import { useT, type Dictionary } from '../../i18n'
 import { brand } from '../../theme'
 
-const NAV_LINKS = [
-  { label: 'О компании', href: '#about' },
-  { label: 'Каталог', href: '#catalog' },
-  { label: 'Новости', href: '#news' },
-  { label: 'Контакты', href: '#contacts' },
-]
+function navLinks(t: Dictionary) {
+  return [
+    { label: t.landing.about, href: '#about' },
+    { label: t.landing.catalog, href: '#catalog' },
+    { label: t.landing.news, href: '#news' },
+    { label: t.landing.contacts, href: '#contacts' },
+  ]
+}
 
 const FEATURE_ICONS: Record<string, ReactElement> = {
   eco: <EcoIcon />,
@@ -68,6 +72,8 @@ export function LandingPage() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [menuOpen, setMenuOpen] = useState(false)
+  const t = useT()
+  const links = navLinks(t)
 
   const { data: settings } = useSettings()
   const { data: blocks = [] } = useContentBlocks()
@@ -81,10 +87,15 @@ export function LandingPage() {
   const contacts = block('contacts')
 
   return (
-    <Box sx={{ bgcolor: brand.cream, minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
       <AppBar
         position="sticky"
-        sx={{ bgcolor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)', borderBottom: 1, borderColor: 'divider' }}
+        sx={{
+          bgcolor: 'background.paper',
+          backdropFilter: 'blur(8px)',
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
       >
         <Container maxWidth="lg" disableGutters>
           <Toolbar sx={{ gap: 2, px: { xs: 2, md: 0 } }}>
@@ -95,6 +106,8 @@ export function LandingPage() {
 
             {isMobile ? (
               <>
+                <LanguageSwitch />
+                <ThemeToggle />
                 <Button
                   component={RouterLink}
                   to="/login"
@@ -102,26 +115,28 @@ export function LandingPage() {
                   variant="contained"
                   startIcon={<LoginIcon />}
                 >
-                  Вход
+                  {t.landing.login}
                 </Button>
-                <IconButton onClick={() => setMenuOpen(true)} aria-label="Меню">
+                <IconButton onClick={() => setMenuOpen(true)} aria-label={t.nav.menu}>
                   <MenuIcon />
                 </IconButton>
               </>
             ) : (
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                {NAV_LINKS.map((link) => (
+                {links.map((link) => (
                   <Button key={link.href} href={link.href} color="inherit">
                     {link.label}
                   </Button>
                 ))}
+                <LanguageSwitch />
+                <ThemeToggle />
                 <Button
                   component={RouterLink}
                   to="/login"
                   variant="contained"
                   startIcon={<LoginIcon />}
                 >
-                  Вход для сотрудников
+                  {t.landing.staffLogin}
                 </Button>
               </Stack>
             )}
@@ -136,7 +151,7 @@ export function LandingPage() {
           </Box>
           <Divider />
           <List>
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <ListItemButton key={link.href} component="a" href={link.href}>
                 <ListItemText primary={link.label} />
               </ListItemButton>
@@ -156,10 +171,10 @@ export function LandingPage() {
         <Container maxWidth="lg">
           <Stack spacing={3} sx={{ maxWidth: 760 }}>
             <Typography variant="h1" sx={{ fontSize: { xs: '2rem', md: '3rem' }, lineHeight: 1.15 }}>
-              {hero?.title ?? settings?.hero_title ?? 'Свежесть, которой доверяют'}
+              {hero?.title ?? settings?.hero_title ?? t.landing.heroTitle}
             </Typography>
             <Typography sx={{ color: brand.gold, fontSize: { xs: '1rem', md: '1.25rem' }, fontWeight: 600 }}>
-              {hero?.subtitle ?? settings?.hero_subtitle ?? 'Сенім сыйлайтын балғындық'}
+              {hero?.subtitle ?? settings?.hero_subtitle ?? t.landing.heroSubtitle}
             </Typography>
             {stringOf(hero, 'lead') && (
               <Typography sx={{ opacity: 0.9, fontSize: { xs: '0.95rem', md: '1.1rem' } }}>
@@ -184,7 +199,7 @@ export function LandingPage() {
                 variant="contained"
                 color="secondary"
               >
-                {stringOf(hero, 'cta_text') ?? 'Стать партнёром'}
+                {stringOf(hero, 'cta_text') ?? t.landing.becomePartner}
               </Button>
               <Button
                 component={RouterLink}
@@ -193,7 +208,7 @@ export function LandingPage() {
                 variant="outlined"
                 sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }}
               >
-                Вход для сотрудников
+                {t.landing.staffLogin}
               </Button>
             </Stack>
           </Stack>
@@ -203,7 +218,7 @@ export function LandingPage() {
       {/* Преимущества */}
       {features && (
         <Container maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
-          <Typography variant="h2" sx={{ mb: 1, color: brand.green }}>
+          <Typography variant="h2" sx={{ mb: 1, color: 'primary.main' }}>
             {features.title}
           </Typography>
           {features.subtitle && (
@@ -239,9 +254,9 @@ export function LandingPage() {
 
       {/* Каталог */}
       {catalog && (
-        <Box id="catalog" sx={{ bgcolor: '#fff', py: { xs: 5, md: 8 } }}>
+        <Box id="catalog" sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 8 } }}>
           <Container maxWidth="lg">
-            <Typography variant="h2" sx={{ mb: 1, color: brand.green }}>
+            <Typography variant="h2" sx={{ mb: 1, color: 'primary.main' }}>
               {catalog.title}
             </Typography>
             {catalog.subtitle && (
@@ -282,7 +297,7 @@ export function LandingPage() {
       {/* О компании */}
       {about && (
         <Container id="about" maxWidth="lg" sx={{ py: { xs: 5, md: 8 } }}>
-          <Typography variant="h2" sx={{ mb: 2, color: brand.green }}>
+          <Typography variant="h2" sx={{ mb: 2, color: 'primary.main' }}>
             {about.title}
           </Typography>
           <Typography sx={{ mb: 3, maxWidth: 800 }}>{stringOf(about, 'text')}</Typography>
@@ -301,10 +316,10 @@ export function LandingPage() {
 
       {/* Новости и акции */}
       {news && news.items.length > 0 && (
-        <Box id="news" sx={{ bgcolor: '#fff', py: { xs: 5, md: 8 } }}>
+        <Box id="news" sx={{ bgcolor: 'background.paper', py: { xs: 5, md: 8 } }}>
           <Container maxWidth="lg">
-            <Typography variant="h2" sx={{ mb: 3, color: brand.green }}>
-              Новости и акции
+            <Typography variant="h2" sx={{ mb: 3, color: 'primary.main' }}>
+              {t.landing.newsAndPromo}
             </Typography>
             <Box
               sx={{
@@ -326,7 +341,7 @@ export function LandingPage() {
                   <CardContent>
                     <Chip
                       size="small"
-                      label={post.category_title}
+                      label={t.news.categories[post.category] ?? post.category}
                       color={post.category === 'promo' ? 'secondary' : 'default'}
                       sx={{ mb: 1 }}
                     />
@@ -348,7 +363,7 @@ export function LandingPage() {
       <Box id="contacts" sx={{ bgcolor: brand.green, color: '#fff', py: { xs: 5, md: 8 } }}>
         <Container maxWidth="lg">
           <Typography variant="h2" sx={{ mb: 3 }}>
-            {contacts?.title ?? 'Контакты'}
+            {contacts?.title ?? t.landing.contacts}
           </Typography>
           <Box
             sx={{
@@ -385,14 +400,14 @@ export function LandingPage() {
                 color="secondary"
                 sx={{ mt: 3 }}
               >
-                Вход для сотрудников
+                {t.landing.staffLogin}
               </Button>
             </Box>
           </Box>
 
           <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.2)' }} />
           <Typography variant="body2" sx={{ opacity: 0.7 }}>
-            © {new Date().getFullYear()} {settings?.company_name ?? 'QoQo'}. Все права защищены.
+            © {new Date().getFullYear()} {settings?.company_name ?? 'QoQo'}. {t.landing.rights}
           </Typography>
         </Container>
       </Box>

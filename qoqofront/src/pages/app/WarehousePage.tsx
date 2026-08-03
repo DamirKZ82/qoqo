@@ -9,19 +9,22 @@ import Typography from '@mui/material/Typography'
 import { useOrders } from '../../api/queries'
 import type { OrderStatus } from '../../api/types'
 import { OrderCard } from '../../components/OrderCard'
+import { useT, type Dictionary } from '../../i18n'
 import { brand } from '../../theme'
 
 // Опрашиваем сервер часто: склад должен видеть заявку почти сразу после отправки.
 const POLL_MS = 10_000
 
-const COLUMNS: { status: OrderStatus; title: string; hint: string; color: string }[] = [
-  { status: 'new', title: 'Новые', hint: 'Ожидают, чтобы их взяли в работу', color: brand.gold },
-  { status: 'assembling', title: 'В сборке', hint: 'Собираются прямо сейчас', color: '#ED6C02' },
-  { status: 'assembled', title: 'Собраны', hint: 'Готовы к отгрузке', color: brand.greenLight },
-  { status: 'shipped', title: 'Отгружены', hint: 'В пути к точке', color: brand.green },
+type ColumnStatus = Extract<OrderStatus, 'new' | 'assembling' | 'assembled' | 'shipped'>
+
+const COLUMNS: { status: ColumnStatus; color: string }[] = [
+  { status: 'new', color: brand.gold },
+  { status: 'assembling', color: brand.goldDark },
+  { status: 'assembled', color: brand.greenBright },
+  { status: 'shipped', color: brand.greenLight },
 ]
 
-function Column({ status, title, hint, color }: (typeof COLUMNS)[number]) {
+function Column({ status, color, t }: (typeof COLUMNS)[number] & { t: Dictionary }) {
   const { data, isPending } = useOrders({ status, limit: 50 }, POLL_MS)
 
   return (
@@ -30,12 +33,12 @@ function Column({ status, title, hint, color }: (typeof COLUMNS)[number]) {
         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            {title}
+            {t.statusPlural[status]}
           </Typography>
           <Badge badgeContent={data?.total ?? 0} color="primary" showZero />
         </Stack>
         <Typography variant="caption" color="text.secondary">
-          {hint}
+          {t.warehouse.hints[status]}
         </Typography>
       </CardContent>
 
@@ -47,7 +50,7 @@ function Column({ status, title, hint, color }: (typeof COLUMNS)[number]) {
         )}
         {data?.items.length === 0 && (
           <Typography variant="body2" color="text.secondary">
-            Пусто
+            {t.warehouse.empty}
           </Typography>
         )}
         {data?.items.map((order) => (
@@ -59,13 +62,13 @@ function Column({ status, title, hint, color }: (typeof COLUMNS)[number]) {
 }
 
 export function WarehousePage() {
+  const t = useT()
+
   return (
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h4">Склад</Typography>
-        <Typography color="text.secondary">
-          Заявки появляются автоматически, список обновляется каждые 10 секунд.
-        </Typography>
+        <Typography variant="h4">{t.warehouse.title}</Typography>
+        <Typography color="text.secondary">{t.warehouse.subtitle}</Typography>
       </Box>
 
       <Box
@@ -77,7 +80,7 @@ export function WarehousePage() {
         }}
       >
         {COLUMNS.map((column) => (
-          <Column key={column.status} {...column} />
+          <Column key={column.status} {...column} t={t} />
         ))}
       </Box>
     </Stack>

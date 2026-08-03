@@ -13,13 +13,16 @@ import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-d
 
 import { api, errorMessage } from '../../api/client'
 import { Logo } from '../../components/Logo'
+import { LanguageSwitch, ThemeToggle } from '../../components/Preferences'
 import { useAuth } from '../../auth/AuthContext'
+import { useT } from '../../i18n'
+import type { UserRole } from '../../api/types'
 import { brand } from '../../theme'
 
 interface InvitationInfo {
   email: string
   full_name: string
-  role_title: string
+  role: UserRole
   expires_at: string
 }
 
@@ -30,6 +33,7 @@ export function SetPasswordPage() {
   const token = searchParams.get('token') ?? ''
   const navigate = useNavigate()
   const { setToken } = useAuth()
+  const t = useT()
 
   const [password, setPassword] = useState('')
   const [repeat, setRepeat] = useState('')
@@ -60,7 +64,7 @@ export function SetPasswordPage() {
       setToken(data.access_token)
       navigate('/app', { replace: true })
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось установить пароль'))
+      setError(errorMessage(err, t.setPassword.failed))
     } finally {
       setBusy(false)
     }
@@ -80,15 +84,17 @@ export function SetPasswordPage() {
       <Card sx={{ width: '100%', maxWidth: 440, borderRadius: 3 }}>
         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Stack spacing={3}>
+            <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+              <LanguageSwitch />
+              <ThemeToggle />
+            </Stack>
+
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Logo height={56} />
             </Box>
 
             {!token && (
-              <Alert severity="error">
-                В ссылке нет токена. Откройте её целиком из письма или запросите новую у
-                администратора.
-              </Alert>
+              <Alert severity="error">{t.setPassword.noToken}</Alert>
             )}
 
             {token && invitation.isPending && (
@@ -101,7 +107,7 @@ export function SetPasswordPage() {
               <Stack spacing={2}>
                 <Alert severity="error">{errorMessage(invitation.error)}</Alert>
                 <Button component={RouterLink} to="/login" variant="outlined">
-                  На страницу входа
+                  {t.setPassword.toLogin}
                 </Button>
               </Stack>
             )}
@@ -109,9 +115,9 @@ export function SetPasswordPage() {
             {invitation.data && (
               <Stack spacing={3} component="form" onSubmit={handleSubmit}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h5">Установка пароля</Typography>
+                  <Typography variant="h5">{t.setPassword.title}</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {invitation.data.full_name} · {invitation.data.role_title}
+                    {invitation.data.full_name} · {t.roles[invitation.data.role]}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {invitation.data.email}
@@ -121,7 +127,7 @@ export function SetPasswordPage() {
                 {error && <Alert severity="error">{error}</Alert>}
 
                 <TextField
-                  label="Новый пароль"
+                  label={t.setPassword.password}
                   type="password"
                   size="medium"
                   value={password}
@@ -129,26 +135,26 @@ export function SetPasswordPage() {
                   autoComplete="new-password"
                   error={tooShort}
                   helperText={
-                    tooShort ? `Минимум ${MIN_PASSWORD_LENGTH} символов` : 'Минимум 8 символов'
+                    t.setPassword.minLength(MIN_PASSWORD_LENGTH)
                   }
                   required
                   fullWidth
                 />
                 <TextField
-                  label="Повторите пароль"
+                  label={t.setPassword.repeat}
                   type="password"
                   size="medium"
                   value={repeat}
                   onChange={(event) => setRepeat(event.target.value)}
                   autoComplete="new-password"
                   error={mismatch}
-                  helperText={mismatch ? 'Пароли не совпадают' : ' '}
+                  helperText={mismatch ? t.setPassword.mismatch : ' '}
                   required
                   fullWidth
                 />
 
                 <Button type="submit" variant="contained" size="large" disabled={!canSubmit} fullWidth>
-                  {busy ? 'Сохраняем…' : 'Сохранить и войти'}
+                  {busy ? t.setPassword.submitting : t.setPassword.submit}
                 </Button>
               </Stack>
             )}

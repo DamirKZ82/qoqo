@@ -31,8 +31,9 @@ import { errorMessage } from '../../../api/client'
 import { useReference, useSaveReference } from '../../../api/queries'
 import type { ReferenceItem } from '../../../api/types'
 import { useAuth } from '../../../auth/AuthContext'
+import { useT, type Dictionary } from '../../../i18n'
 import { formatDate } from '../../../lib/format'
-import { findReference, type FieldConfig } from './config'
+import { buildReferences, findReference, type FieldConfig } from './config'
 
 /** Выпадающий список значений другого справочника. */
 function RefSelect({
@@ -44,6 +45,7 @@ function RefSelect({
   value: string
   onChange: (value: string) => void
 }) {
+  const t = useT()
   const { data } = useReference<ReferenceItem>(field.refResource!, { limit: 300 })
   return (
     <TextField
@@ -54,7 +56,7 @@ function RefSelect({
       required={field.required}
       fullWidth
     >
-      <MenuItem value="">— не выбрано —</MenuItem>
+      <MenuItem value="">{t.common.notSelected}</MenuItem>
       {data?.items.map((item) => (
         <MenuItem key={item.id} value={item.id}>
           {item.name}
@@ -64,22 +66,23 @@ function RefSelect({
   )
 }
 
-function displayValue(item: ReferenceItem, field: FieldConfig): string {
+function displayValue(item: ReferenceItem, field: FieldConfig, t: Dictionary): string {
   const raw = item[field.name]
-  if (raw === null || raw === undefined || raw === '') return '—'
-  if (field.type === 'checkbox') return raw ? 'да' : 'нет'
+  if (raw === null || raw === undefined || raw === '') return t.common.dash
+  if (field.type === 'checkbox') return raw ? t.common.yes : t.common.no
   if (field.type === 'date') return formatDate(String(raw))
   // Для ссылочных полей бэкенд отдаёт готовое имя рядом с идентификатором.
   if (field.type === 'ref') {
     const nameKey = field.name.replace(/_id$/, '_name')
-    return item[nameKey] ? String(item[nameKey]) : '—'
+    return item[nameKey] ? String(item[nameKey]) : t.common.dash
   }
   return String(raw)
 }
 
 export function ReferenceListPage() {
   const { resource = '' } = useParams<{ resource: string }>()
-  const config = findReference(resource)
+  const t = useT()
+  const config = findReference(buildReferences(t), resource)
   const { hasRole } = useAuth()
   const canEdit = hasRole('admin', 'director', 'accountant')
 
@@ -96,7 +99,7 @@ export function ReferenceListPage() {
   const save = useSaveReference(resource)
 
   if (!config) {
-    return <Alert severity="error">Неизвестный справочник: {resource}</Alert>
+    return <Alert severity="error">{t.references.unknown(resource)}</Alert>
   }
 
   const listFields = config.fields.filter((field) => field.inList)
@@ -135,7 +138,7 @@ export function ReferenceListPage() {
       await save.mutateAsync({ id: editing?.id || undefined, values: payload })
       setEditing(null)
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось сохранить'))
+      setError(errorMessage(err, t.references.saveFailed))
     }
   }
 
@@ -151,17 +154,17 @@ export function ReferenceListPage() {
           )}
         </Box>
         <Button component={RouterLink} to="/app/refs">
-          Все справочники
+          {t.references.all}
         </Button>
         {canEdit && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => openDialog(null)}>
-            Добавить
+            {t.common.add}
           </Button>
         )}
       </Stack>
 
       <TextField
-        placeholder="Поиск по наименованию или коду"
+        placeholder={t.references.searchPlaceholder}
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         slotProps={{
@@ -198,11 +201,11 @@ export function ReferenceListPage() {
                 {data.items.map((item) => (
                   <TableRow key={item.id} hover>
                     {listFields.map((field) => (
-                      <TableCell key={field.name}>{displayValue(item, field)}</TableCell>
+                      <TableCell key={field.name}>{displayValue(item, field, t)}</TableCell>
                     ))}
                     {canEdit && (
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        <IconButton size="small" onClick={() => openDialog(item)} aria-label="Изменить">
+                        <IconButton size="small" onClick={() => openDialog(item)} aria-label={t.common.edit}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -213,7 +216,7 @@ export function ReferenceListPage() {
                   <TableRow>
                     <TableCell colSpan={listFields.length + 1}>
                       <Typography color="text.secondary" sx={{ py: 2 }}>
-                        Ничего не найдено.
+                        {t.common.nothingFound}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -222,14 +225,16 @@ export function ReferenceListPage() {
             </Table>
           </TableContainer>
           <Typography variant="caption" color="text.secondary" sx={{ p: 2, display: 'block' }}>
-            Показано {data.items.length} из {data.total}
+            {t.references.shown(data.items.length, data.total)}
           </Typography>
         </Card>
       )}
 
       <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} fullWidth maxWidth="sm">
         <DialogTitle>
-          {editing?.id ? `Изменить ${config.singular}` : `Добавить ${config.singular}`}
+          {editing?.id
+            ? t.references.editTitle(config.singular)
+            : t.references.addTitle(config.singular)}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
@@ -294,9 +299,9 @@ export function ReferenceListPage() {
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditing(null)}>Отмена</Button>
+          <Button onClick={() => setEditing(null)}>{t.common.cancel}</Button>
           <Button variant="contained" onClick={handleSave} disabled={save.isPending}>
-            Сохранить
+            {t.common.save}
           </Button>
         </DialogActions>
       </Dialog>

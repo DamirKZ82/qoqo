@@ -7,16 +7,18 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router-dom'
 
-import { REFERENCES } from './config'
+import { useT } from '../../../i18n'
+import { buildReferences } from './config'
 
 export function ReferencesIndexPage() {
+  const t = useT()
+  const references = buildReferences(t)
+
   return (
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h4">Справочники</Typography>
-        <Typography color="text.secondary">
-          Все элементы имеют GUID — тот же идентификатор используется при обмене с 1С.
-        </Typography>
+        <Typography variant="h4">{t.references.title}</Typography>
+        <Typography color="text.secondary">{t.references.subtitle}</Typography>
       </Box>
 
       <Box
@@ -26,7 +28,7 @@ export function ReferencesIndexPage() {
           gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, 1fr)' },
         }}
       >
-        {REFERENCES.map((reference) => (
+        {references.map((reference) => (
           <Card key={reference.resource}>
             <CardActionArea component={RouterLink} to={`/app/refs/${reference.resource}`}>
               <CardContent>

@@ -12,18 +12,20 @@ import { Link as RouterLink } from 'react-router-dom'
 import { useOrderStats, useOrders } from '../../api/queries'
 import { useAuth } from '../../auth/AuthContext'
 import { OrderCard } from '../../components/OrderCard'
+import { useT } from '../../i18n'
 import { formatMoney } from '../../lib/format'
 import { brand } from '../../theme'
 
 const TILES = [
-  { key: 'new', label: 'Новые', color: brand.gold, status: 'new' },
-  { key: 'assembling', label: 'В сборке', color: brand.greenLight, status: 'assembling' },
-  { key: 'assembled', label: 'Собраны', color: brand.green, status: 'assembled' },
-  { key: 'shipped', label: 'Отгружены', color: '#5A6B57', status: 'shipped' },
+  { key: 'new', color: brand.gold },
+  { key: 'assembling', color: brand.greenLight },
+  { key: 'assembled', color: brand.greenBright },
+  { key: 'shipped', color: brand.goldDark },
 ] as const
 
 export function DashboardPage() {
   const { user, hasRole } = useAuth()
+  const t = useT()
   // Сводка обновляется сама: склад должен видеть новые заявки без перезагрузки.
   const { data: stats, isPending } = useOrderStats(20_000)
   const { data: recent } = useOrders({ limit: 5 }, 20_000)
@@ -31,8 +33,8 @@ export function DashboardPage() {
   return (
     <Stack spacing={3}>
       <Box>
-        <Typography variant="h4">Здравствуйте, {user?.full_name.split(' ')[0]}</Typography>
-        <Typography color="text.secondary">{user?.role_title}</Typography>
+        <Typography variant="h4">{t.dashboard.greeting(user?.full_name.split(' ')[0] ?? '')}</Typography>
+        <Typography color="text.secondary">{user ? t.roles[user.role] : ''}</Typography>
       </Box>
 
       <Box
@@ -44,10 +46,10 @@ export function DashboardPage() {
       >
         {TILES.map((tile) => (
           <Card key={tile.key}>
-            <CardActionArea component={RouterLink} to={`/app/orders?status=${tile.status}`}>
+            <CardActionArea component={RouterLink} to={`/app/orders?status=${tile.key}`}>
               <CardContent>
                 <Typography variant="body2" color="text.secondary">
-                  {tile.label}
+                  {t.statusPlural[tile.key]}
                 </Typography>
                 {isPending ? (
                   <Skeleton width={48} height={44} />
@@ -71,13 +73,13 @@ export function DashboardPage() {
           >
             <Box>
               <Typography variant="body2" color="text.secondary">
-                Заявок сегодня
+                {t.dashboard.ordersToday}
               </Typography>
               <Typography variant="h4">{stats?.orders_today ?? 0}</Typography>
             </Box>
             <Box>
               <Typography variant="body2" color="text.secondary">
-                На сумму
+                {t.dashboard.amountToday}
               </Typography>
               <Typography variant="h4" sx={{ color: brand.green }}>
                 {formatMoney(stats?.total_amount_today)}
@@ -90,7 +92,7 @@ export function DashboardPage() {
                 variant="contained"
                 startIcon={<AddCircleIcon />}
               >
-                Новая заявка
+                {t.nav.newOrder}
               </Button>
             )}
           </Stack>
@@ -99,11 +101,11 @@ export function DashboardPage() {
 
       <Box>
         <Typography variant="h5" sx={{ mb: 1.5 }}>
-          Последние заявки
+          {t.dashboard.recent}
         </Typography>
         <Stack spacing={1.5}>
           {recent?.items.length === 0 && (
-            <Typography color="text.secondary">Заявок пока нет.</Typography>
+            <Typography color="text.secondary">{t.dashboard.empty}</Typography>
           )}
           {recent?.items.map((order) => (
             <OrderCard key={order.id} order={order} />

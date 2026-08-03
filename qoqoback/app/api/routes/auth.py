@@ -79,6 +79,7 @@ def read_invitation(token: str, db: DbSession) -> InvitationInfo:
     return InvitationInfo(
         email=user.email,
         full_name=user.full_name,
+        role=user.role,
         role_title=ROLE_TITLES.get(user.role, user.role.value),
         expires_at=invitation.expires_at,
     )

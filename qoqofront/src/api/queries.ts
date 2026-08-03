@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from './client'
+import type { Language } from '../i18n'
 import type {
   AppSettings,
   BreakdownReport,
@@ -167,13 +168,14 @@ export function useBreakdown(filters: ReportFilters, dimension: ReportDimension,
   })
 }
 
-/** Скачивает разрез целиком файлом CSV. */
+/** Скачивает разрез целиком файлом CSV. Заголовки в файле пишет сервер. */
 export async function downloadBreakdownCsv(
   filters: ReportFilters,
   dimension: ReportDimension,
+  lang: Language,
 ): Promise<void> {
   const response = await api.get('/reports/breakdown/export', {
-    params: { ...filters, dimension },
+    params: { ...filters, dimension, lang },
     responseType: 'blob',
   })
 

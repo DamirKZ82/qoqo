@@ -40,13 +40,26 @@ api.interceptors.response.use(
   },
 )
 
+/**
+ * Тексты по умолчанию для ошибок. Функция ниже вызывается и вне React, поэтому
+ * строки ставит LanguageProvider, а не хук.
+ */
+let messages = {
+  generic: 'Не удалось выполнить операцию',
+  network: 'Сервер недоступен. Проверьте, запущен ли бэкенд.',
+}
+
+export function setApiMessages(next: { generic: string; network: string }): void {
+  messages = next
+}
+
 /** Достаёт текст ошибки из ответа FastAPI. */
-export function errorMessage(error: unknown, fallback = 'Не удалось выполнить операцию'): string {
+export function errorMessage(error: unknown, fallback?: string): string {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail
     if (typeof detail === 'string') return detail
     if (Array.isArray(detail) && detail[0]?.msg) return String(detail[0].msg)
-    if (error.code === 'ERR_NETWORK') return 'Сервер недоступен. Проверьте, запущен ли бэкенд.'
+    if (error.code === 'ERR_NETWORK') return messages.network
   }
-  return fallback
+  return fallback ?? messages.generic
 }

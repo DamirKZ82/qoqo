@@ -42,6 +42,40 @@ DIMENSION_TITLES: dict[Dimension, str] = {
 }
 
 
+class ExportLanguage(StrEnum):
+    """Язык выгрузки. В интерфейсе подписи собирает клиент, но CSV пишет сервер."""
+
+    RU = "ru"
+    KK = "kk"
+
+
+DIMENSION_TITLES_KK: dict[Dimension, str] = {
+    Dimension.OUTLET: "Сауда нүктелері",
+    Dimension.COUNTERPARTY: "Контрагенттер",
+    Dimension.SALES_REP: "Сауда өкілдері",
+    Dimension.NOMENCLATURE: "Номенклатура",
+    Dimension.CATEGORY: "Номенклатура топтары",
+    Dimension.WAREHOUSE: "Қоймалар",
+}
+
+# Заголовки колонок выгрузки: разрез, заявок, количество, сумма, доля.
+CSV_HEADERS: dict[ExportLanguage, tuple[str, str, str, str]] = {
+    ExportLanguage.RU: ("Заявок", "Количество", "Сумма", "Доля, %"),
+    ExportLanguage.KK: ("Өтінімдер", "Саны", "Сома", "Үлесі, %"),
+}
+
+CSV_TOTAL: dict[ExportLanguage, str] = {
+    ExportLanguage.RU: "Итого",
+    ExportLanguage.KK: "Жиыны",
+}
+
+
+def dimension_title(dimension: Dimension, language: ExportLanguage) -> str:
+    if language is ExportLanguage.KK:
+        return DIMENSION_TITLES_KK[dimension]
+    return DIMENSION_TITLES[dimension]
+
+
 class ReportTotals(BaseModel):
     """Итоги за период."""
 
@@ -54,12 +88,13 @@ class ReportTotals(BaseModel):
 
 
 class SalesPoint(BaseModel):
-    """Одна точка на графике динамики."""
+    """Одна точка на графике динамики.
+
+    Отдаём только начало периода: подпись собирает клиент средствами Intl на
+    выбранном языке, поэтому названия месяцев на сервере не нужны.
+    """
 
     period: date
-    # Короткая подпись для оси и полная — для подсказки.
-    label: str
-    title: str
     orders_count: int = 0
     total_amount: Decimal = Decimal(0)
 

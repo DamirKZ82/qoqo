@@ -26,12 +26,13 @@ import { useRef, useState } from 'react'
 
 import { api, errorMessage, mediaUrl } from '../../api/client'
 import type { NewsPost, Page, PostCategory } from '../../api/types'
+import { useT } from '../../i18n'
 import { formatDate } from '../../lib/format'
 
-const CATEGORIES: { value: PostCategory; label: string }[] = [
-  { value: 'news', label: 'Новость' },
-  { value: 'promo', label: 'Акция' },
-  { value: 'announcement', label: 'Объявление' },
+const CATEGORIES: PostCategory[] = [
+  'news',
+  'promo',
+  'announcement',
 ]
 
 const EMPTY: Partial<NewsPost> = {
@@ -45,6 +46,7 @@ const EMPTY: Partial<NewsPost> = {
 }
 
 export function NewsEditor() {
+  const t = useT()
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [editing, setEditing] = useState<Partial<NewsPost> | null>(null)
@@ -97,15 +99,15 @@ export function NewsEditor() {
     <Stack spacing={2}>
       <Stack direction="row" sx={{ alignItems: 'center' }}>
         <Typography color="text.secondary" variant="body2" sx={{ flexGrow: 1 }}>
-          Опубликованные записи выводятся на главной. Черновики видны только здесь.
+          {t.news.subtitle}
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setEditing({ ...EMPTY })}>
-          Запись
+          {t.news.addButton}
         </Button>
       </Stack>
 
       {data?.items.length === 0 && (
-        <Typography color="text.secondary">Записей пока нет.</Typography>
+        <Typography color="text.secondary">{t.news.empty}</Typography>
       )}
 
       {data?.items.map((post) => (
@@ -123,11 +125,11 @@ export function NewsEditor() {
               <Box sx={{ flexGrow: 1, minWidth: 200 }}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                   <Typography variant="h6">{post.title}</Typography>
-                  <Chip size="small" label={post.category_title} />
+                  <Chip size="small" label={t.news.categories[post.category]} />
                   <Chip
                     size="small"
                     color={post.is_published ? 'success' : 'default'}
-                    label={post.is_published ? 'опубликовано' : 'черновик'}
+                    label={post.is_published ? t.news.published : t.news.draft}
                   />
                   {post.is_pinned && <PushPinIcon fontSize="small" color="secondary" />}
                 </Stack>
@@ -150,13 +152,13 @@ export function NewsEditor() {
       ))}
 
       <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing?.id ? 'Изменить запись' : 'Новая запись'}</DialogTitle>
+        <DialogTitle>{editing?.id ? t.news.editTitle : t.news.createTitle}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField
-              label="Заголовок"
+              label={t.news.heading}
               value={editing?.title ?? ''}
               onChange={(event) => setEditing({ ...editing, title: event.target.value })}
               required
@@ -164,7 +166,7 @@ export function NewsEditor() {
             />
             <TextField
               select
-              label="Тип"
+              label={t.news.category}
               value={editing?.category ?? 'news'}
               onChange={(event) =>
                 setEditing({ ...editing, category: event.target.value as PostCategory })
@@ -172,13 +174,13 @@ export function NewsEditor() {
               fullWidth
             >
               {CATEGORIES.map((category) => (
-                <MenuItem key={category.value} value={category.value}>
-                  {category.label}
+                <MenuItem key={category} value={category}>
+                  {t.news.categories[category]}
                 </MenuItem>
               ))}
             </TextField>
             <TextField
-              label="Краткое описание"
+              label={t.news.summary}
               value={editing?.summary ?? ''}
               onChange={(event) => setEditing({ ...editing, summary: event.target.value })}
               multiline
@@ -186,7 +188,7 @@ export function NewsEditor() {
               fullWidth
             />
             <TextField
-              label="Текст"
+              label={t.news.body}
               value={editing?.body ?? ''}
               onChange={(event) => setEditing({ ...editing, body: event.target.value })}
               multiline
@@ -209,7 +211,7 @@ export function NewsEditor() {
                 onClick={() => fileRef.current?.click()}
                 disabled={upload.isPending}
               >
-                {editing?.cover_url ? 'Заменить обложку' : 'Загрузить обложку'}
+                {editing?.cover_url ? t.news.replaceCover : t.news.uploadCover}
               </Button>
               <input
                 ref={fileRef}
@@ -223,7 +225,7 @@ export function NewsEditor() {
                   try {
                     await upload.mutateAsync(file)
                   } catch (err) {
-                    setError(errorMessage(err, 'Не удалось загрузить изображение'))
+                    setError(errorMessage(err, t.news.coverFailed))
                   } finally {
                     if (fileRef.current) fileRef.current.value = ''
                   }
@@ -241,7 +243,7 @@ export function NewsEditor() {
                     }
                   />
                 }
-                label="Опубликовать"
+                label={t.news.publish}
               />
               <FormControlLabel
                 control={
@@ -250,13 +252,13 @@ export function NewsEditor() {
                     onChange={(event) => setEditing({ ...editing, is_pinned: event.target.checked })}
                   />
                 }
-                label="Закрепить"
+                label={t.news.pin}
               />
             </Stack>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditing(null)}>Отмена</Button>
+          <Button onClick={() => setEditing(null)}>{t.common.cancel}</Button>
           <Button
             variant="contained"
             disabled={save.isPending || !editing?.title}
@@ -265,11 +267,11 @@ export function NewsEditor() {
               try {
                 await save.mutateAsync(editing!)
               } catch (err) {
-                setError(errorMessage(err, 'Не удалось сохранить запись'))
+                setError(errorMessage(err, t.news.saveFailed))
               }
             }}
           >
-            Сохранить
+            {t.common.save}
           </Button>
         </DialogActions>
       </Dialog>

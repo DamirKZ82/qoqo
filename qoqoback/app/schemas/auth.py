@@ -68,6 +68,8 @@ class InvitationInfo(BaseModel):
 
     email: str
     full_name: str
+    # Код роли — подпись собирает клиент на своём языке.
+    role: UserRole
     role_title: str
     expires_at: datetime
 

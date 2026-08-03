@@ -32,18 +32,9 @@ import { useState } from 'react'
 import { api, errorMessage } from '../../api/client'
 import { useReference } from '../../api/queries'
 import type { CurrentUser, Page, ReferenceItem, UserRole } from '../../api/types'
+import { useT } from '../../i18n'
 
-const ROLES: { value: UserRole; label: string; hint: string }[] = [
-  { value: 'admin', label: 'Администратор', hint: 'Полный доступ, заводит сотрудников и настройки' },
-  { value: 'director', label: 'Директор', hint: 'Все заявки, справочники, контент сайта' },
-  {
-    value: 'accountant',
-    label: 'Бухгалтер',
-    hint: 'Видит все заявки, ведёт договоры, цены и контент',
-  },
-  { value: 'sales_rep', label: 'Торговый представитель', hint: 'Оформляет заявки от торговых точек' },
-  { value: 'warehouse', label: 'Склад', hint: 'Собирает и отгружает заявки' },
-]
+const ROLES: UserRole[] = ['admin', 'director', 'accountant', 'sales_rep', 'warehouse']
 
 interface InviteResult {
   user: CurrentUser
@@ -62,6 +53,7 @@ const EMPTY_FORM = {
 
 export function UsersPage() {
   const queryClient = useQueryClient()
+  const t = useT()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -131,7 +123,7 @@ export function UsersPage() {
     try {
       await saveUser.mutateAsync()
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось сохранить сотрудника'))
+      setError(errorMessage(err, t.users.saveFailed))
     }
   }
 
@@ -139,14 +131,13 @@ export function UsersPage() {
     <Stack spacing={2}>
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4">Сотрудники</Typography>
+          <Typography variant="h4">{t.users.title}</Typography>
           <Typography color="text.secondary" variant="body2">
-            Самостоятельной регистрации нет. Сотрудник получает приглашение на почту и сам задаёт
-            пароль.
+            {t.users.subtitle}
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-          Пригласить
+          {t.users.invite}
         </Button>
       </Stack>
 
@@ -155,10 +146,10 @@ export function UsersPage() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Сотрудник</TableCell>
-                <TableCell>Почта</TableCell>
-                <TableCell>Роль</TableCell>
-                <TableCell>Статус</TableCell>
+                <TableCell>{t.users.columns.user}</TableCell>
+                <TableCell>{t.users.columns.email}</TableCell>
+                <TableCell>{t.users.columns.role}</TableCell>
+                <TableCell>{t.users.columns.status}</TableCell>
                 <TableCell align="right" />
               </TableRow>
             </TableHead>
@@ -167,16 +158,16 @@ export function UsersPage() {
                 <TableRow key={user.id} hover>
                   <TableCell>{user.full_name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role_title}</TableCell>
+                  <TableCell>{t.roles[user.role]}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"
-                      label={user.is_active ? 'Активен' : 'Отключён'}
+                      label={user.is_active ? t.users.active : t.users.disabled}
                       color={user.is_active ? 'success' : 'default'}
                     />
                   </TableCell>
                   <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                    <Tooltip title="Отправить приглашение заново">
+                    <Tooltip title={t.users.resend}>
                       <IconButton
                         size="small"
                         onClick={() => resendInvite.mutate(user.id)}
@@ -198,25 +189,23 @@ export function UsersPage() {
 
       {/* Форма сотрудника */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editingId ? 'Изменить сотрудника' : 'Пригласить сотрудника'}</DialogTitle>
+        <DialogTitle>{editingId ? t.users.editTitle : t.users.createTitle}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
             {!editingId && (
-              <Alert severity="info">
-                На указанную почту уйдёт письмо со ссылкой для установки пароля.
-              </Alert>
+              <Alert severity="info">{t.users.mailHint}</Alert>
             )}
 
             <TextField
-              label="ФИО"
+              label={t.users.fullName}
               value={form.full_name}
               onChange={(event) => setForm({ ...form, full_name: event.target.value })}
               required
               fullWidth
             />
             <TextField
-              label="Рабочая почта"
+              label={t.users.email}
               type="email"
               value={form.email}
               onChange={(event) => setForm({ ...form, email: event.target.value })}
@@ -224,22 +213,22 @@ export function UsersPage() {
               fullWidth
             />
             <TextField
-              label="Телефон"
+              label={t.users.phone}
               value={form.phone}
               onChange={(event) => setForm({ ...form, phone: event.target.value })}
               fullWidth
             />
             <TextField
               select
-              label="Роль"
+              label={t.users.role}
               value={form.role}
               onChange={(event) => setForm({ ...form, role: event.target.value as UserRole })}
-              helperText={ROLES.find((role) => role.value === form.role)?.hint}
+              helperText={t.roleHints[form.role]}
               fullWidth
             >
               {ROLES.map((role) => (
-                <MenuItem key={role.value} value={role.value}>
-                  {role.label}
+                <MenuItem key={role} value={role}>
+                  {t.roles[role]}
                 </MenuItem>
               ))}
             </TextField>
@@ -247,13 +236,13 @@ export function UsersPage() {
             {form.role === 'warehouse' && (
               <TextField
                 select
-                label="Склад сотрудника"
+                label={t.users.warehouse}
                 value={form.warehouse_id}
                 onChange={(event) => setForm({ ...form, warehouse_id: event.target.value })}
-                helperText="Сотрудник будет видеть заявки только этого склада"
+                helperText={t.users.warehouseHint}
                 fullWidth
               >
-                <MenuItem value="">— все склады —</MenuItem>
+                <MenuItem value="">{t.users.allWarehouses}</MenuItem>
                 {warehouses?.items.map((item) => (
                   <MenuItem key={item.id} value={item.id}>
                     {item.name}
@@ -269,33 +258,29 @@ export function UsersPage() {
                   onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
                 />
               }
-              label="Учётная запись активна"
+              label={t.users.isActive}
             />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDialogOpen(false)}>Отмена</Button>
+          <Button onClick={() => setDialogOpen(false)}>{t.common.cancel}</Button>
           <Button variant="contained" onClick={handleSave} disabled={saveUser.isPending}>
-            {editingId ? 'Сохранить' : 'Пригласить'}
+            {editingId ? t.common.save : t.users.invite}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Результат приглашения */}
       <Dialog open={Boolean(invite)} onClose={() => setInvite(null)} fullWidth maxWidth="sm">
-        <DialogTitle>Приглашение</DialogTitle>
+        <DialogTitle>{t.users.inviteTitle}</DialogTitle>
         <DialogContent>
           {invite?.invitation_sent ? (
-            <Alert severity="success">
-              Письмо отправлено на {invite.user.email}. Ссылка сработает один раз.
-            </Alert>
+            <Alert severity="success">{t.users.mailSent(invite.user.email)}</Alert>
           ) : (
             <Stack spacing={2}>
-              <Alert severity="warning">
-                Почта не настроена, письмо не ушло. Передайте ссылку сотруднику лично.
-              </Alert>
+              <Alert severity="warning">{t.users.mailNotConfigured}</Alert>
               <TextField
-                label="Ссылка для установки пароля"
+                label={t.users.inviteLink}
                 value={invite?.invitation_link ?? ''}
                 slotProps={{
                   input: {
@@ -305,7 +290,7 @@ export function UsersPage() {
                         onClick={() =>
                           navigator.clipboard.writeText(invite?.invitation_link ?? '')
                         }
-                        aria-label="Скопировать"
+                        aria-label={t.common.copy}
                       >
                         <ContentCopyIcon fontSize="small" />
                       </IconButton>
@@ -320,7 +305,7 @@ export function UsersPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button variant="contained" onClick={() => setInvite(null)}>
-            Понятно
+            {t.common.understood}
           </Button>
         </DialogActions>
       </Dialog>

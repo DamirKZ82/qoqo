@@ -7,13 +7,19 @@ from fastapi import HTTPException
 
 from app.api.routes.reports import (
     ReportQuery,
-    _bucket_labels,
     _bucket_start,
     _bucket_starts,
     report_query,
 )
 from app.main import app
-from app.schemas.report import PeriodGroup
+from app.schemas.report import (
+    CSV_HEADERS,
+    CSV_TOTAL,
+    Dimension,
+    ExportLanguage,
+    PeriodGroup,
+    dimension_title,
+)
 
 
 def make_query(date_from: date, date_to: date) -> ReportQuery:
@@ -81,17 +87,6 @@ def test_month_buckets_cross_year_boundary() -> None:
     ]
 
 
-def test_bucket_labels() -> None:
-    short, full = _bucket_labels(PeriodGroup.DAY, date(2026, 8, 3))
-    assert (short, full) == ("03.08", "3 августа 2026")
-
-    short, full = _bucket_labels(PeriodGroup.WEEK, date(2026, 8, 3))
-    assert (short, full) == ("03.08", "03.08 — 09.08.2026")
-
-    short, full = _bucket_labels(PeriodGroup.MONTH, date(2026, 8, 1))
-    assert (short, full) == ("авг", "Август 2026")
-
-
 def test_report_query_rejects_reversed_period() -> None:
     with pytest.raises(HTTPException) as excinfo:
         report_query(date_from=date(2026, 8, 3), date_to=date(2026, 7, 1))
@@ -102,6 +97,16 @@ def test_report_query_rejects_too_long_period() -> None:
     with pytest.raises(HTTPException) as excinfo:
         report_query(date_from=date(2020, 1, 1), date_to=date(2026, 1, 1))
     assert "длиннее" in excinfo.value.detail
+
+
+def test_csv_headers_cover_every_language() -> None:
+    """Выгрузку пишет сервер, поэтому заголовки нужны на обоих языках."""
+
+    for language in ExportLanguage:
+        assert language in CSV_HEADERS
+        assert language in CSV_TOTAL
+        for dimension in Dimension:
+            assert dimension_title(dimension, language)
 
 
 async def test_reports_require_authorization() -> None:

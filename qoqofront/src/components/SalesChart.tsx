@@ -1,11 +1,14 @@
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
+import { useTheme } from '@mui/material/styles'
 import { useEffect, useRef, useState } from 'react'
 
-import type { SalesPoint } from '../api/types'
+import type { PeriodGroup, SalesPoint } from '../api/types'
+import { useT } from '../i18n'
 import { formatCompactMoney, formatMoney } from '../lib/format'
-import { brand } from '../theme'
+import { periodLabel, periodTitle } from '../lib/periods'
+import { chartColors } from '../theme'
 
 const HEIGHT = 260
 const PADDING = { top: 20, right: 8, bottom: 28, left: 64 }
@@ -58,11 +61,18 @@ function barPath(x: number, y: number, width: number, height: number): string {
 
 interface SalesChartProps {
   points: SalesPoint[]
+  groupBy: PeriodGroup
 }
 
-export function SalesChart({ points }: SalesChartProps) {
+export function SalesChart({ points, groupBy }: SalesChartProps) {
+  const t = useT()
+  const theme = useTheme()
   const [ref, width] = useElementWidth()
   const [hovered, setHovered] = useState<number | null>(null)
+
+  // Тёмная тема — не инверсия светлой: столбцам нужна своя ступень зелени,
+  // иначе фирменный тёмно-зелёный сливается с подложкой.
+  const colors = chartColors[theme.palette.mode === 'dark' ? 'dark' : 'light']
 
   const plotWidth = Math.max(width - PADDING.left - PADDING.right, 0)
   const plotHeight = HEIGHT - PADDING.top - PADDING.bottom
@@ -84,7 +94,7 @@ export function SalesChart({ points }: SalesChartProps) {
   return (
     <Box ref={ref} sx={{ position: 'relative', width: '100%' }}>
       {width > 0 && (
-        <svg width={width} height={HEIGHT} role="img" aria-label="Динамика продаж по периодам">
+        <svg width={width} height={HEIGHT} role="img" aria-label={t.reports.chartLabel}>
           {ticks.map((tick) => {
             const y = PADDING.top + plotHeight - (tick / scaleMax) * plotHeight
             return (
@@ -94,7 +104,7 @@ export function SalesChart({ points }: SalesChartProps) {
                   x2={width - PADDING.right}
                   y1={y}
                   y2={y}
-                  stroke="rgba(0, 0, 0, 0.08)"
+                  stroke={theme.palette.divider}
                   strokeWidth={1}
                 />
                 <text
@@ -102,7 +112,7 @@ export function SalesChart({ points }: SalesChartProps) {
                   y={y + 4}
                   textAnchor="end"
                   fontSize={11}
-                  fill="#5F5F5F"
+                  fill={theme.palette.text.secondary}
                   style={{ fontVariantNumeric: 'tabular-nums' }}
                 >
                   {tick === 0 ? '0' : formatCompactMoney(tick)}
@@ -124,19 +134,19 @@ export function SalesChart({ points }: SalesChartProps) {
                 onMouseEnter={() => setHovered(index)}
                 onMouseLeave={() => setHovered(null)}
               >
-                <title>{`${point.title}: ${formatMoney(point.total_amount)}`}</title>
+                <title>{`${periodTitle(point.period, groupBy, t)}: ${formatMoney(point.total_amount)}`}</title>
                 {/* Прозрачная полоса во всю высоту — попасть в неё легче, чем в столбец. */}
                 <rect
                   x={PADDING.left + index * band}
                   y={PADDING.top}
                   width={Math.max(band, 1)}
                   height={plotHeight}
-                  fill={isHovered ? 'rgba(0, 83, 59, 0.05)' : 'transparent'}
+                  fill={isHovered ? theme.palette.action.hover : 'transparent'}
                 />
                 {height > 0 && (
                   <path
                     d={barPath(x, y, barWidth, height)}
-                    fill={isHovered ? brand.greenDark : brand.green}
+                    fill={isHovered ? colors.barHover : colors.bar}
                   />
                 )}
                 {index === peakIndex && barWidth >= 12 && (
@@ -146,7 +156,7 @@ export function SalesChart({ points }: SalesChartProps) {
                     textAnchor="middle"
                     fontSize={11}
                     fontWeight={600}
-                    fill="#333333"
+                    fill={theme.palette.text.primary}
                   >
                     {formatCompactMoney(value)}
                   </text>
@@ -157,9 +167,9 @@ export function SalesChart({ points }: SalesChartProps) {
                     y={HEIGHT - 9}
                     textAnchor="middle"
                     fontSize={11}
-                    fill="#5F5F5F"
+                    fill={theme.palette.text.secondary}
                   >
-                    {point.label}
+                    {periodLabel(point.period, groupBy, t)}
                   </text>
                 )}
               </g>
@@ -171,7 +181,7 @@ export function SalesChart({ points }: SalesChartProps) {
             x2={width - PADDING.right}
             y1={PADDING.top + plotHeight}
             y2={PADDING.top + plotHeight}
-            stroke="rgba(0, 0, 0, 0.16)"
+            stroke={theme.palette.text.disabled}
             strokeWidth={1}
           />
         </svg>
@@ -196,11 +206,11 @@ export function SalesChart({ points }: SalesChartProps) {
           }}
         >
           <Typography variant="caption" color="text.secondary">
-            {active.title}
+            {periodTitle(active.period, groupBy, t)}
           </Typography>
           <Typography sx={{ fontWeight: 700 }}>{formatMoney(active.total_amount)}</Typography>
           <Typography variant="caption" color="text.secondary">
-            Заявок: {active.orders_count}
+            {t.reports.orders}: {active.orders_count}
           </Typography>
         </Paper>
       )}

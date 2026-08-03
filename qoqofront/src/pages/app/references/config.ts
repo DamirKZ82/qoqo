@@ -1,3 +1,5 @@
+import type { Dictionary } from '../../../i18n'
+
 /** Описание поля справочника — по нему строится и таблица, и форма. */
 export interface FieldConfig {
   name: string
@@ -19,139 +21,144 @@ export interface ReferenceConfig {
   fields: FieldConfig[]
 }
 
-const CODE_AND_NAME: FieldConfig[] = [
-  { name: 'code', label: 'Код', inList: true },
-  { name: 'name', label: 'Наименование', required: true, inList: true },
-]
+export function buildReferences(t: Dictionary): ReferenceConfig[] {
+  const codeAndName: FieldConfig[] = [
+    { name: 'code', label: t.fields.code, inList: true },
+    { name: 'name', label: t.fields.name, required: true, inList: true },
+  ]
 
-export const REFERENCES: ReferenceConfig[] = [
+  return [
   {
     resource: 'organizations',
-    title: 'Организации',
-    singular: 'организацию',
+      title: t.referenceTitles['organizations'],
+      singular: t.referenceSingulars['organizations'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'full_name', label: 'Полное наименование' },
-      { name: 'bin', label: 'БИН', inList: true },
-      { name: 'address', label: 'Адрес' },
-      { name: 'phone', label: 'Телефон', inList: true },
+      ...codeAndName,
+      { name: 'full_name', label: t.fields.fullName },
+      { name: 'bin', label: t.fields.bin, inList: true },
+      { name: 'address', label: t.fields.address },
+      { name: 'phone', label: t.fields.phone, inList: true },
     ],
   },
   {
     resource: 'divisions',
-    title: 'Подразделения',
-    singular: 'подразделение',
+      title: t.referenceTitles['divisions'],
+      singular: t.referenceSingulars['divisions'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'organization_id', label: 'Организация', type: 'ref', refResource: 'organizations', inList: true },
-      { name: 'parent_id', label: 'Входит в', type: 'ref', refResource: 'divisions' },
+      ...codeAndName,
+      { name: 'organization_id', label: t.fields.organization, type: 'ref', refResource: 'organizations', inList: true },
+      { name: 'parent_id', label: t.fields.parent, type: 'ref', refResource: 'divisions' },
     ],
   },
   {
     resource: 'warehouses',
-    title: 'Склады',
-    singular: 'склад',
+      title: t.referenceTitles['warehouses'],
+      singular: t.referenceSingulars['warehouses'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'organization_id', label: 'Организация', type: 'ref', refResource: 'organizations' },
-      { name: 'address', label: 'Адрес', inList: true },
-      { name: 'phone', label: 'Телефон' },
+      ...codeAndName,
+      { name: 'organization_id', label: t.fields.organization, type: 'ref', refResource: 'organizations' },
+      { name: 'address', label: t.fields.address, inList: true },
+      { name: 'phone', label: t.fields.phone },
     ],
   },
   {
     resource: 'units',
-    title: 'Единицы измерения',
-    singular: 'единицу измерения',
+      title: t.referenceTitles['units'],
+      singular: t.referenceSingulars['units'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'full_name', label: 'Полное наименование', inList: true },
-      { name: 'okei_code', label: 'Код по ОКЕИ', helperText: '166 — килограмм, 796 — штука' },
-      { name: 'ratio', label: 'Коэффициент', type: 'number' },
+      ...codeAndName,
+      { name: 'full_name', label: t.fields.fullName, inList: true },
+      { name: 'okei_code', label: t.fields.okeiCode, helperText: t.fields.okeiHint },
+      { name: 'ratio', label: t.fields.ratio, type: 'number' },
     ],
   },
   {
     resource: 'product-categories',
-    title: 'Номенклатурные группы',
-    singular: 'группу',
+      title: t.referenceTitles['product-categories'],
+      singular: t.referenceSingulars['product-categories'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'parent_id', label: 'Входит в', type: 'ref', refResource: 'product-categories' },
-      { name: 'sort_order', label: 'Порядок', type: 'number' },
+      ...codeAndName,
+      { name: 'parent_id', label: t.fields.parent, type: 'ref', refResource: 'product-categories' },
+      { name: 'sort_order', label: t.fields.sortOrder, type: 'number' },
     ],
   },
   {
     resource: 'nomenclature',
-    title: 'Номенклатура',
-    singular: 'номенклатуру',
+      title: t.referenceTitles['nomenclature'],
+      singular: t.referenceSingulars['nomenclature'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'article', label: 'Артикул', inList: true },
-      { name: 'category_id', label: 'Группа', type: 'ref', refResource: 'product-categories', inList: true },
-      { name: 'base_unit_id', label: 'Базовая единица', type: 'ref', refResource: 'units' },
-      { name: 'price', label: 'Цена', type: 'number', inList: true },
-      { name: 'vat_rate', label: 'Ставка НДС, %', type: 'number' },
-      { name: 'is_weight_goods', label: 'Весовой товар', type: 'checkbox' },
-      { name: 'barcode', label: 'Штрихкод' },
+      ...codeAndName,
+      { name: 'article', label: t.fields.article, inList: true },
+      { name: 'category_id', label: t.fields.category, type: 'ref', refResource: 'product-categories', inList: true },
+      { name: 'base_unit_id', label: t.fields.baseUnit, type: 'ref', refResource: 'units' },
+      { name: 'price', label: t.fields.price, type: 'number', inList: true },
+      { name: 'vat_rate', label: t.fields.vatRate, type: 'number' },
+      { name: 'is_weight_goods', label: t.fields.isWeightGoods, type: 'checkbox' },
+      { name: 'barcode', label: t.fields.barcode },
     ],
   },
   {
     resource: 'counterparties',
-    title: 'Контрагенты',
-    singular: 'контрагента',
+      title: t.referenceTitles['counterparties'],
+      singular: t.referenceSingulars['counterparties'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'full_name', label: 'Полное наименование' },
-      { name: 'bin_iin', label: 'БИН / ИИН', inList: true },
-      { name: 'is_legal_entity', label: 'Юридическое лицо', type: 'checkbox' },
-      { name: 'address', label: 'Адрес' },
-      { name: 'phone', label: 'Телефон', inList: true },
-      { name: 'email', label: 'Почта' },
-      { name: 'contact_person', label: 'Контактное лицо' },
+      ...codeAndName,
+      { name: 'full_name', label: t.fields.fullName },
+      { name: 'bin_iin', label: t.fields.binIin, inList: true },
+      { name: 'is_legal_entity', label: t.fields.isLegalEntity, type: 'checkbox' },
+      { name: 'address', label: t.fields.address },
+      { name: 'phone', label: t.fields.phone, inList: true },
+      { name: 'email', label: t.fields.email },
+      { name: 'contact_person', label: t.fields.contactPerson },
     ],
   },
   {
     resource: 'outlet-types',
-    title: 'Типы торговых точек',
-    singular: 'тип точки',
-    description: 'Магазин, супермаркет, рынок и другие — список можно дополнять.',
+      title: t.referenceTitles['outlet-types'],
+      singular: t.referenceSingulars['outlet-types'],
+      description: t.referenceDescriptions['outlet-types'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'color', label: 'Цвет метки', type: 'color', inList: true },
-      { name: 'sort_order', label: 'Порядок', type: 'number' },
+      ...codeAndName,
+      { name: 'color', label: t.fields.color, type: 'color', inList: true },
+      { name: 'sort_order', label: t.fields.sortOrder, type: 'number' },
     ],
   },
   {
     resource: 'outlets',
-    title: 'Торговые точки',
-    singular: 'торговую точку',
-    description: 'Конкретные адреса доставки. Каждая точка принадлежит контрагенту и имеет тип.',
+      title: t.referenceTitles['outlets'],
+      singular: t.referenceSingulars['outlets'],
+      description: t.referenceDescriptions['outlets'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'counterparty_id', label: 'Контрагент', type: 'ref', refResource: 'counterparties', required: true, inList: true },
-      { name: 'outlet_type_id', label: 'Тип точки', type: 'ref', refResource: 'outlet-types', inList: true },
-      { name: 'address', label: 'Адрес', inList: true },
-      { name: 'phone', label: 'Телефон' },
-      { name: 'contact_person', label: 'Контактное лицо' },
-      { name: 'latitude', label: 'Широта', type: 'number' },
-      { name: 'longitude', label: 'Долгота', type: 'number' },
+      ...codeAndName,
+      { name: 'counterparty_id', label: t.fields.counterparty, type: 'ref', refResource: 'counterparties', required: true, inList: true },
+      { name: 'outlet_type_id', label: t.fields.outletType, type: 'ref', refResource: 'outlet-types', inList: true },
+      { name: 'address', label: t.fields.address, inList: true },
+      { name: 'phone', label: t.fields.phone },
+      { name: 'contact_person', label: t.fields.contactPerson },
+      { name: 'latitude', label: t.fields.latitude, type: 'number' },
+      { name: 'longitude', label: t.fields.longitude, type: 'number' },
     ],
   },
   {
     resource: 'contracts',
-    title: 'Договоры',
-    singular: 'договор',
+      title: t.referenceTitles['contracts'],
+      singular: t.referenceSingulars['contracts'],
     fields: [
-      ...CODE_AND_NAME,
-      { name: 'counterparty_id', label: 'Контрагент', type: 'ref', refResource: 'counterparties', required: true, inList: true },
-      { name: 'organization_id', label: 'Организация', type: 'ref', refResource: 'organizations' },
-      { name: 'number', label: 'Номер', inList: true },
-      { name: 'contract_date', label: 'Дата', type: 'date', inList: true },
-      { name: 'payment_days', label: 'Отсрочка, дней', type: 'number' },
-      { name: 'credit_limit', label: 'Кредитный лимит', type: 'number' },
+      ...codeAndName,
+      { name: 'counterparty_id', label: t.fields.counterparty, type: 'ref', refResource: 'counterparties', required: true, inList: true },
+      { name: 'organization_id', label: t.fields.organization, type: 'ref', refResource: 'organizations' },
+      { name: 'number', label: t.fields.number, inList: true },
+      { name: 'contract_date', label: t.fields.date, type: 'date', inList: true },
+      { name: 'payment_days', label: t.fields.paymentDays, type: 'number' },
+      { name: 'credit_limit', label: t.fields.creditLimit, type: 'number' },
     ],
   },
-]
+  ]
+}
 
-export function findReference(resource: string): ReferenceConfig | undefined {
-  return REFERENCES.find((item) => item.resource === resource)
+export function findReference(
+  references: ReferenceConfig[],
+  resource: string,
+): ReferenceConfig | undefined {
+  return references.find((item) => item.resource === resource)
 }

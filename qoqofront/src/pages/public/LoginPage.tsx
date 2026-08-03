@@ -12,11 +12,14 @@ import { Link as RouterLink, Navigate, useLocation, useNavigate } from 'react-ro
 
 import { errorMessage } from '../../api/client'
 import { Logo } from '../../components/Logo'
+import { LanguageSwitch, ThemeToggle } from '../../components/Preferences'
 import { useAuth } from '../../auth/AuthContext'
+import { useT } from '../../i18n'
 import { brand } from '../../theme'
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth()
+  const t = useT()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -38,7 +41,7 @@ export function LoginPage() {
       await login(email, password)
       navigate('/app', { replace: true })
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось войти'))
+      setError(errorMessage(err, t.login.failed))
     } finally {
       setBusy(false)
     }
@@ -58,21 +61,26 @@ export function LoginPage() {
       <Card sx={{ width: '100%', maxWidth: 420, borderRadius: 3 }}>
         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
           <Stack spacing={3} component="form" onSubmit={handleSubmit}>
+            <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+              <LanguageSwitch />
+              <ThemeToggle />
+            </Stack>
+
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Logo height={56} />
             </Box>
 
             <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h5">Вход для сотрудников</Typography>
+              <Typography variant="h5">{t.login.title}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Система учёта продаж
+                {t.login.subtitle}
               </Typography>
             </Box>
 
             {error && <Alert severity="error">{error}</Alert>}
 
             <TextField
-              label="Рабочая почта"
+              label={t.login.email}
               type="email"
               size="medium"
               value={email}
@@ -82,7 +90,7 @@ export function LoginPage() {
               fullWidth
             />
             <TextField
-              label="Пароль"
+              label={t.login.password}
               type="password"
               size="medium"
               value={password}
@@ -93,16 +101,15 @@ export function LoginPage() {
             />
 
             <Button type="submit" variant="contained" size="large" disabled={busy} fullWidth>
-              {busy ? 'Входим…' : 'Войти'}
+              {busy ? t.login.submitting : t.login.submit}
             </Button>
 
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-              Учётные записи заводит администратор. Если доступа нет — обратитесь к нему за
-              приглашением.
+              {t.login.hint}
             </Typography>
 
             <Link component={RouterLink} to="/" sx={{ textAlign: 'center' }} underline="hover">
-              Вернуться на сайт
+              {t.login.backToSite}
             </Link>
           </Stack>
         </CardContent>

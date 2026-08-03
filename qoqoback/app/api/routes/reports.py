@@ -24,14 +24,18 @@ from app.models import (
     Warehouse,
 )
 from app.schemas.report import (
+    CSV_HEADERS,
+    CSV_TOTAL,
     DIMENSION_TITLES,
     BreakdownReport,
     BreakdownRow,
     Dimension,
+    ExportLanguage,
     PeriodGroup,
     ReportTotals,
     SalesPoint,
     SalesReport,
+    dimension_title,
 )
 from app.services.orders import visible_orders_conditions
 
@@ -55,49 +59,6 @@ COUNTED_STATUSES: tuple[OrderStatus, ...] = tuple(
 )
 
 MAX_PERIOD_DAYS = 1095
-
-MONTHS_SHORT = (
-    "янв",
-    "фев",
-    "мар",
-    "апр",
-    "май",
-    "июн",
-    "июл",
-    "авг",
-    "сен",
-    "окт",
-    "ноя",
-    "дек",
-)
-MONTHS_NOMINATIVE = (
-    "Январь",
-    "Февраль",
-    "Март",
-    "Апрель",
-    "Май",
-    "Июнь",
-    "Июль",
-    "Август",
-    "Сентябрь",
-    "Октябрь",
-    "Ноябрь",
-    "Декабрь",
-)
-MONTHS_GENITIVE = (
-    "января",
-    "февраля",
-    "марта",
-    "апреля",
-    "мая",
-    "июня",
-    "июля",
-    "августа",
-    "сентября",
-    "октября",
-    "ноября",
-    "декабря",
-)
 
 
 # --- Параметры отчёта ----------------------------------------------------
@@ -209,23 +170,6 @@ def _next_bucket(group: PeriodGroup, value: date) -> date:
     return (value.replace(day=28) + timedelta(days=4)).replace(day=1)
 
 
-def _bucket_labels(group: PeriodGroup, start: date) -> tuple[str, str]:
-    """Короткая подпись для оси графика и полная — для подсказки."""
-
-    if group is PeriodGroup.DAY:
-        return (
-            f"{start.day:02d}.{start.month:02d}",
-            f"{start.day} {MONTHS_GENITIVE[start.month - 1]} {start.year}",
-        )
-    if group is PeriodGroup.WEEK:
-        end = start + timedelta(days=6)
-        return (
-            f"{start.day:02d}.{start.month:02d}",
-            f"{start.day:02d}.{start.month:02d} — {end.day:02d}.{end.month:02d}.{end.year}",
-        )
-    return MONTHS_SHORT[start.month - 1], f"{MONTHS_NOMINATIVE[start.month - 1]} {start.year}"
-
-
 def _bucket_starts(group: PeriodGroup, params: ReportQuery) -> list[date]:
     """Все периоды внутри диапазона, включая те, где заявок не было.
 
@@ -312,16 +256,7 @@ def sales_report(
     series: list[SalesPoint] = []
     for start in _bucket_starts(group_by, params):
         count, amount = by_start.get(start, (0, Decimal(0)))
-        label, title = _bucket_labels(group_by, start)
-        series.append(
-            SalesPoint(
-                period=start,
-                label=label,
-                title=title,
-                orders_count=count,
-                total_amount=amount,
-            )
-        )
+        series.append(SalesPoint(period=start, orders_count=count, total_amount=amount))
 
     return SalesReport(
         date_from=params.date_from,
@@ -458,6 +393,7 @@ def export_breakdown(
     user: ReportUser,
     params: ReportParams,
     dimension: Dimension = Dimension.OUTLET,
+    lang: ExportLanguage = ExportLanguage.RU,
 ) -> Response:
     """Тот же разрез целиком, файлом CSV."""
 
@@ -467,7 +403,7 @@ def export_breakdown(
     # Точка с запятой и BOM — иначе Excel открывает файл одной колонкой
     # и портит кириллицу.
     writer = csv.writer(buffer, delimiter=";", lineterminator="\r\n")
-    writer.writerow([DIMENSION_TITLES[dimension], "Заявок", "Количество", "Сумма", "Доля, %"])
+    writer.writerow([dimension_title(dimension, lang), *CSV_HEADERS[lang]])
     for row in rows:
         writer.writerow(
             [
@@ -478,7 +414,7 @@ def export_breakdown(
                 f"{row.share * 100:.1f}".replace(".", ","),
             ]
         )
-    writer.writerow(["Итого", "", "", f"{total:.2f}".replace(".", ","), ""])
+    writer.writerow([CSV_TOTAL[lang], "", "", f"{total:.2f}".replace(".", ","), ""])
 
     filename = f"qoqo-{dimension.value}-{params.date_from}-{params.date_to}.csv"
     return Response(

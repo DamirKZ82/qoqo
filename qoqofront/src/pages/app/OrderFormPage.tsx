@@ -24,6 +24,7 @@ import {
   useSaveOrder,
 } from '../../api/queries'
 import type { Nomenclature, Outlet, ReferenceItem } from '../../api/types'
+import { useT } from '../../i18n'
 import { formatMoney } from '../../lib/format'
 
 interface LineDraft {
@@ -42,6 +43,7 @@ export function OrderFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const navigate = useNavigate()
+  const t = useT()
 
   const { data: existing } = useOrder(id)
   const saveOrder = useSaveOrder()
@@ -160,15 +162,15 @@ export function OrderFormPage() {
     setError(null)
 
     if (!counterparty) {
-      setError('Выберите контрагента')
+      setError(t.orderForm.needCounterparty)
       return
     }
     if (lines.length === 0) {
-      setError('Добавьте хотя бы одну позицию')
+      setError(t.orderForm.needLines)
       return
     }
     if (lines.some((line) => Number(line.quantity) <= 0)) {
-      setError('Количество в каждой строке должно быть больше нуля')
+      setError(t.orderForm.needQuantity)
       return
     }
 
@@ -179,7 +181,7 @@ export function OrderFormPage() {
       }
       navigate(`/app/orders/${saved.id}`)
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось сохранить заявку'))
+      setError(errorMessage(err, t.orderForm.saveFailed))
     }
   }
 
@@ -187,7 +189,7 @@ export function OrderFormPage() {
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 900 }}>
-      <Typography variant="h4">{isEdit ? 'Изменение заявки' : 'Новая заявка'}</Typography>
+      <Typography variant="h4">{isEdit ? t.orderForm.editTitle : t.orderForm.createTitle}</Typography>
 
       {error && <Alert severity="error">{error}</Alert>}
 
@@ -204,7 +206,7 @@ export function OrderFormPage() {
                 setOutlet(null)
                 setContract(null)
               }}
-              renderInput={(params) => <TextField {...params} label="Контрагент" required />}
+              renderInput={(params) => <TextField {...params} label={t.orderForm.counterparty} required />}
             />
 
             <Autocomplete
@@ -219,8 +221,8 @@ export function OrderFormPage() {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Торговая точка"
-                  helperText={counterparty ? outlet?.address ?? ' ' : 'Сначала выберите контрагента'}
+                  label={t.orderForm.outlet}
+                  helperText={counterparty ? (outlet?.address ?? ' ') : t.orderForm.outletHint}
                 />
               )}
             />
@@ -234,7 +236,7 @@ export function OrderFormPage() {
                 value={contract}
                 onChange={(_, value) => setContract(value)}
                 disabled={!counterparty}
-                renderInput={(params) => <TextField {...params} label="Договор" />}
+                renderInput={(params) => <TextField {...params} label={t.orderForm.contract} />}
               />
               <Autocomplete
                 sx={{ flex: 1 }}
@@ -243,13 +245,13 @@ export function OrderFormPage() {
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 value={warehouse}
                 onChange={(_, value) => setWarehouse(value)}
-                renderInput={(params) => <TextField {...params} label="Склад отгрузки" />}
+                renderInput={(params) => <TextField {...params} label={t.orderForm.warehouse} />}
               />
             </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
-                label="Дата доставки"
+                label={t.orderForm.deliveryDate}
                 type="date"
                 value={deliveryDate}
                 onChange={(event) => setDeliveryDate(event.target.value)}
@@ -257,7 +259,7 @@ export function OrderFormPage() {
                 sx={{ flex: 1 }}
               />
               <TextField
-                label="Комментарий"
+                label={t.orderForm.comment}
                 value={comment}
                 onChange={(event) => setComment(event.target.value)}
                 sx={{ flex: 2 }}
@@ -270,7 +272,7 @@ export function OrderFormPage() {
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Позиции
+            {t.orderForm.lines}
           </Typography>
 
           <Autocomplete
@@ -281,7 +283,7 @@ export function OrderFormPage() {
             blurOnSelect
             onChange={(_, value) => addProduct(value)}
             renderInput={(params) => (
-              <TextField {...params} label="Добавить товар" placeholder="Начните вводить название" />
+              <TextField {...params} label={t.orderForm.addProduct} placeholder={t.orderForm.addProductHint} />
             )}
             renderOption={(props, option) => (
               <li {...props} key={option.id}>
@@ -302,12 +304,12 @@ export function OrderFormPage() {
                       {line.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {line.unit_name ?? 'кг'} ·{' '}
+                      {line.unit_name ?? t.common.dash} ·{' '}
                       {formatMoney(Number(line.quantity || 0) * Number(line.price || 0))}
                     </Typography>
                   </Box>
                   <TextField
-                    label="Кол-во"
+                    label={t.orderForm.quantity}
                     type="number"
                     value={line.quantity}
                     onChange={(event) => updateLine(line.key, { quantity: event.target.value })}
@@ -315,7 +317,7 @@ export function OrderFormPage() {
                     slotProps={{ htmlInput: { min: 0, step: '0.001' } }}
                   />
                   <TextField
-                    label="Цена"
+                    label={t.orderForm.price}
                     type="number"
                     value={line.price}
                     onChange={(event) => updateLine(line.key, { price: event.target.value })}
@@ -324,7 +326,7 @@ export function OrderFormPage() {
                   />
                   <IconButton
                     onClick={() => setLines((c) => c.filter((item) => item.key !== line.key))}
-                    aria-label="Удалить строку"
+                    aria-label={t.orderForm.removeLine}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -335,13 +337,13 @@ export function OrderFormPage() {
 
             {lines.length === 0 && (
               <Typography color="text.secondary" variant="body2">
-                Позиции не добавлены.
+                {t.orderForm.noLines}
               </Typography>
             )}
           </Stack>
 
           <Stack direction="row" sx={{ mt: 2, justifyContent: 'space-between' }}>
-            <Typography variant="h6">Итого</Typography>
+            <Typography variant="h6">{t.common.total}</Typography>
             <Typography variant="h6" color="primary">
               {formatMoney(total)}
             </Typography>
@@ -357,7 +359,7 @@ export function OrderFormPage() {
           onClick={() => handleSave(true)}
           disabled={busy}
         >
-          Отправить на склад
+          {t.orderForm.send}
         </Button>
         <Button
           variant="outlined"
@@ -366,10 +368,10 @@ export function OrderFormPage() {
           onClick={() => handleSave(false)}
           disabled={busy}
         >
-          Сохранить черновик
+          {t.orderForm.saveDraft}
         </Button>
         <Button size="large" onClick={() => navigate(-1)} disabled={busy}>
-          Отмена
+          {t.common.cancel}
         </Button>
       </Stack>
     </Stack>

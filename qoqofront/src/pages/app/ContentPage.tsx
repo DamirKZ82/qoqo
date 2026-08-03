@@ -31,55 +31,72 @@ import { useState } from 'react'
 import { api, errorMessage } from '../../api/client'
 import { useContentBlocks } from '../../api/queries'
 import type { BlockType, ContentBlock } from '../../api/types'
+import { useT, type Dictionary } from '../../i18n'
 import { NewsEditor } from './NewsEditor'
 
 /** Какие поля показывать в редакторе для каждого типа блока. */
-const BLOCK_FIELDS: Record<BlockType, { key: string; label: string; multiline?: boolean }[]> = {
-  hero: [
-    { key: 'lead', label: 'Вводный текст', multiline: true },
-    { key: 'cta_text', label: 'Текст кнопки' },
-    { key: 'cta_link', label: 'Ссылка кнопки' },
-  ],
-  features: [],
-  catalog: [],
-  about: [{ key: 'text', label: 'Текст', multiline: true }],
-  certificates: [],
-  contacts: [
-    { key: 'phone', label: 'Телефон' },
-    { key: 'email', label: 'Почта' },
-    { key: 'address', label: 'Адрес', multiline: true },
-    { key: 'work_hours', label: 'Часы работы' },
-    { key: 'legal_name', label: 'Юридическое лицо' },
-  ],
-  cta: [
-    { key: 'text', label: 'Текст', multiline: true },
-    { key: 'cta_text', label: 'Текст кнопки' },
-    { key: 'cta_link', label: 'Ссылка кнопки' },
-  ],
-  news: [],
+function blockFields(
+  t: Dictionary,
+): Record<BlockType, { key: string; label: string; multiline?: boolean }[]> {
+  return {
+    hero: [
+      { key: 'lead', label: t.content.payload.lead, multiline: true },
+      { key: 'cta_text', label: t.content.payload.ctaText },
+      { key: 'cta_link', label: t.content.payload.ctaLink },
+    ],
+    features: [],
+    catalog: [],
+    about: [{ key: 'text', label: t.content.payload.text, multiline: true }],
+    certificates: [],
+    contacts: [
+      { key: 'phone', label: t.content.payload.phone },
+      { key: 'email', label: t.content.payload.email },
+      { key: 'address', label: t.content.payload.address, multiline: true },
+      { key: 'work_hours', label: t.content.payload.workHours },
+      { key: 'legal_name', label: t.content.payload.legalName },
+    ],
+    cta: [
+      { key: 'text', label: t.content.payload.text, multiline: true },
+      { key: 'cta_text', label: t.content.payload.ctaText },
+      { key: 'cta_link', label: t.content.payload.ctaLink },
+    ],
+    news: [],
+  }
 }
 
 /** Списочные поля блока: массивы объектов или строк внутри payload. */
-const BLOCK_LISTS: Record<BlockType, { key: string; label: string; columns: string[] } | null> = {
-  hero: { key: 'badges', label: 'Значки', columns: ['title', 'subtitle'] },
-  features: { key: 'items', label: 'Преимущества', columns: ['icon', 'title', 'subtitle'] },
-  catalog: { key: 'items', label: 'Разделы каталога', columns: ['title', 'count', 'image_url'] },
-  about: { key: 'bullets', label: 'Пункты списка', columns: [] },
-  certificates: { key: 'items', label: 'Сертификаты', columns: ['name', 'image_url'] },
-  contacts: null,
-  cta: null,
-  news: null,
+function blockLists(
+  t: Dictionary,
+): Record<BlockType, { key: string; label: string; columns: string[] } | null> {
+  return {
+    hero: { key: 'badges', label: t.content.lists.badges, columns: ['title', 'subtitle'] },
+    features: {
+      key: 'items',
+      label: t.content.lists.features,
+      columns: ['icon', 'title', 'subtitle'],
+    },
+    catalog: {
+      key: 'items',
+      label: t.content.lists.catalog,
+      columns: ['title', 'count', 'image_url'],
+    },
+    about: { key: 'bullets', label: t.content.lists.bullets, columns: [] },
+    certificates: { key: 'items', label: t.content.lists.certificates, columns: ['name', 'image_url'] },
+    contacts: null,
+    cta: null,
+    news: null,
+  }
 }
 
-const BLOCK_TYPES: { value: BlockType; label: string }[] = [
-  { value: 'hero', label: 'Первый экран' },
-  { value: 'features', label: 'Преимущества' },
-  { value: 'catalog', label: 'Каталог продукции' },
-  { value: 'about', label: 'О компании' },
-  { value: 'certificates', label: 'Сертификаты' },
-  { value: 'news', label: 'Новости и акции' },
-  { value: 'contacts', label: 'Контакты' },
-  { value: 'cta', label: 'Призыв к действию' },
+const BLOCK_TYPES: BlockType[] = [
+  'hero',
+  'features',
+  'catalog',
+  'about',
+  'certificates',
+  'news',
+  'contacts',
+  'cta',
 ]
 
 function BlockEditor({
@@ -95,8 +112,9 @@ function BlockEditor({
   const [subtitle, setSubtitle] = useState(block.subtitle ?? '')
   const [payload, setPayload] = useState<Record<string, unknown>>(block.payload ?? {})
   const [error, setError] = useState<string | null>(null)
+  const t = useT()
 
-  const listConfig = BLOCK_LISTS[block.block_type]
+  const listConfig = blockLists(t)[block.block_type]
   const listItems = (Array.isArray(payload[listConfig?.key ?? '']) ? payload[listConfig!.key] : []) as
     | Record<string, string>[]
     | string[]
@@ -127,25 +145,25 @@ function BlockEditor({
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>{block.block_type_title}</DialogTitle>
+      <DialogTitle>{t.content.blockTypes[block.block_type]}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           <TextField
-            label="Заголовок"
+            label={t.content.heading}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             fullWidth
           />
           <TextField
-            label="Подзаголовок"
+            label={t.content.subheading}
             value={subtitle}
             onChange={(event) => setSubtitle(event.target.value)}
             fullWidth
           />
 
-          {BLOCK_FIELDS[block.block_type].map((field) => (
+          {blockFields(t)[block.block_type].map((field) => (
             <TextField
               key={field.key}
               label={field.label}
@@ -160,10 +178,7 @@ function BlockEditor({
           ))}
 
           {block.block_type === 'news' && (
-            <Alert severity="info">
-              Содержимое этого блока берётся из раздела «Новости и акции» — заполнять здесь ничего
-              не нужно.
-            </Alert>
+            <Alert severity="info">{t.content.newsBlockHint}</Alert>
           )}
 
           {listConfig && (
@@ -185,7 +200,7 @@ function BlockEditor({
                     ])
                   }
                 >
-                  Добавить
+                  {t.common.add}
                 </Button>
               </Stack>
 
@@ -194,7 +209,7 @@ function BlockEditor({
                   <Box sx={{ flexGrow: 1, display: 'grid', gap: 1 }}>
                     {listConfig.columns.length === 0 ? (
                       <TextField
-                        label={`Пункт ${index + 1}`}
+                        label={t.content.listItem(index + 1)}
                         value={String(item)}
                         onChange={(event) => {
                           const next = [...(listItems as string[])]
@@ -223,7 +238,7 @@ function BlockEditor({
                     onClick={() =>
                       updateList((listItems as unknown[]).filter((_, i) => i !== index))
                     }
-                    aria-label="Удалить"
+                    aria-label={t.common.delete}
                   >
                     <DeleteIcon />
                   </IconButton>
@@ -234,7 +249,7 @@ function BlockEditor({
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose}>Отмена</Button>
+        <Button onClick={onClose}>{t.common.cancel}</Button>
         <Button
           variant="contained"
           disabled={save.isPending}
@@ -243,11 +258,11 @@ function BlockEditor({
             try {
               await save.mutateAsync()
             } catch (err) {
-              setError(errorMessage(err, 'Не удалось сохранить блок'))
+              setError(errorMessage(err, t.content.saveFailed))
             }
           }}
         >
-          Сохранить
+          {t.common.save}
         </Button>
       </DialogActions>
     </Dialog>
@@ -255,6 +270,7 @@ function BlockEditor({
 }
 
 function BlocksTab() {
+  const t = useT()
   const queryClient = useQueryClient()
   const { data: blocks = [] } = useContentBlocks(true)
   const [editing, setEditing] = useState<ContentBlock | null>(null)
@@ -295,14 +311,13 @@ function BlocksTab() {
     <Stack spacing={2}>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <Typography color="text.secondary" variant="body2" sx={{ flexGrow: 1 }}>
-          Секции показываются на главной сверху вниз. Скрытая секция остаётся сохранённой, но не
-          выводится на сайте.
+          {t.content.blocksHint}
         </Typography>
         <Button href="/" target="_blank" startIcon={<OpenInNewIcon />} size="small">
-          Открыть сайт
+          {t.content.openSite}
         </Button>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
-          Секция
+          {t.content.sectionButton}
         </Button>
       </Stack>
 
@@ -312,9 +327,11 @@ function BlocksTab() {
             <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ flexGrow: 1, minWidth: 200 }}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                  <Typography variant="h6">{block.title || block.block_type_title}</Typography>
-                  <Chip size="small" label={block.block_type_title} />
-                  {!block.is_visible && <Chip size="small" color="default" label="скрыта" />}
+                  <Typography variant="h6">
+                    {block.title || t.content.blockTypes[block.block_type]}
+                  </Typography>
+                  <Chip size="small" label={t.content.blockTypes[block.block_type]} />
+                  {!block.is_visible && <Chip size="small" color="default" label={t.content.hidden} />}
                 </Stack>
                 {block.subtitle && (
                   <Typography variant="body2" color="text.secondary">
@@ -323,14 +340,14 @@ function BlocksTab() {
                 )}
               </Box>
 
-              <Tooltip title="Выше">
+              <Tooltip title={t.common.moveUp}>
                 <span>
                   <IconButton disabled={index === 0} onClick={() => move(index, -1)}>
                     <ArrowUpwardIcon />
                   </IconButton>
                 </span>
               </Tooltip>
-              <Tooltip title="Ниже">
+              <Tooltip title={t.common.moveDown}>
                 <span>
                   <IconButton
                     disabled={index === blocks.length - 1}
@@ -340,15 +357,15 @@ function BlocksTab() {
                   </IconButton>
                 </span>
               </Tooltip>
-              <Tooltip title={block.is_visible ? 'Скрыть' : 'Показать'}>
+              <Tooltip title={block.is_visible ? t.common.hide : t.common.show}>
                 <IconButton
                   onClick={() => patch.mutate({ block, values: { is_visible: !block.is_visible } })}
                 >
                   {block.is_visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
                 </IconButton>
               </Tooltip>
-              <Button onClick={() => setEditing(block)}>Редактировать</Button>
-              <Tooltip title="Удалить секцию">
+              <Button onClick={() => setEditing(block)}>{t.content.editAction}</Button>
+              <Tooltip title={t.content.deleteSection}>
                 <IconButton color="error" onClick={() => remove.mutate(block.id)}>
                   <DeleteIcon />
                 </IconButton>
@@ -363,25 +380,25 @@ function BlocksTab() {
       )}
 
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Новая секция</DialogTitle>
+        <DialogTitle>{t.content.addSection}</DialogTitle>
         <DialogContent>
           <TextField
             select
-            label="Тип секции"
+            label={t.content.sectionType}
             value={newType}
             onChange={(event) => setNewType(event.target.value as BlockType)}
             sx={{ mt: 1 }}
             fullWidth
           >
             {BLOCK_TYPES.map((type) => (
-              <MenuItem key={type.value} value={type.value}>
-                {type.label}
+              <MenuItem key={type} value={type}>
+                {t.content.blockTypes[type]}
               </MenuItem>
             ))}
           </TextField>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setAddOpen(false)}>Отмена</Button>
+          <Button onClick={() => setAddOpen(false)}>{t.common.cancel}</Button>
           <Button
             variant="contained"
             onClick={() => {
@@ -389,8 +406,7 @@ function BlocksTab() {
               setEditing({
                 id: '',
                 block_type: newType,
-                block_type_title:
-                  BLOCK_TYPES.find((type) => type.value === newType)?.label ?? newType,
+                block_type_title: t.content.blockTypes[newType],
                 title: '',
                 subtitle: '',
                 sort_order: (blocks.at(-1)?.sort_order ?? 0) + 10,
@@ -399,7 +415,7 @@ function BlocksTab() {
               })
             }}
           >
-            Создать
+            {t.content.create}
           </Button>
         </DialogActions>
       </Dialog>
@@ -409,19 +425,20 @@ function BlocksTab() {
 
 export function ContentPage() {
   const [tab, setTab] = useState(0)
+  const t = useT()
 
   return (
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h4">Главная страница</Typography>
+        <Typography variant="h4">{t.content.title}</Typography>
         <Typography color="text.secondary" variant="body2">
-          Управление содержимым сайта: секции лендинга, новости и акции.
+          {t.content.pageSubtitle}
         </Typography>
       </Box>
 
       <Tabs value={tab} onChange={(_, value: number) => setTab(value)}>
-        <Tab label="Секции" />
-        <Tab label="Новости и акции" />
+        <Tab label={t.content.tabs.blocks} />
+        <Tab label={t.content.tabs.news} />
       </Tabs>
 
       {tab === 0 ? <BlocksTab /> : <NewsEditor />}

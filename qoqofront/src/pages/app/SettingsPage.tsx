@@ -16,15 +16,12 @@ import { api, errorMessage, mediaUrl } from '../../api/client'
 import { useSettings } from '../../api/queries'
 import type { AppSettings } from '../../api/types'
 import { Logo } from '../../components/Logo'
+import { useT } from '../../i18n'
 import logoSrc from '../../assets/logo.svg'
 
 type LogoVariant = 'light' | 'dark' | 'favicon'
 
-const VARIANTS: { key: LogoVariant; title: string; hint: string }[] = [
-  { key: 'light', title: 'Основной логотип', hint: 'Шапка сайта и системы, страница входа' },
-  { key: 'dark', title: 'Логотип для тёмного фона', hint: 'Если не задан — основной перекрашивается в белый' },
-  { key: 'favicon', title: 'Иконка вкладки', hint: 'Квадратное изображение, лучше SVG или PNG' },
-]
+const VARIANTS: LogoVariant[] = ['light', 'dark', 'favicon']
 
 function LogoSlot({
   variant,
@@ -39,6 +36,7 @@ function LogoSlot({
   currentUrl: string | null
   onChanged: () => void
 }) {
+  const t = useT()
   const inputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,7 +61,7 @@ function LogoSlot({
     try {
       await upload.mutateAsync(file)
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось загрузить файл'))
+      setError(errorMessage(err, t.settings.uploadFailed))
     } finally {
       // Сбрасываем input, иначе повторный выбор того же файла не сработает.
       if (inputRef.current) inputRef.current.value = ''
@@ -117,7 +115,7 @@ function LogoSlot({
             onClick={() => inputRef.current?.click()}
             disabled={upload.isPending}
           >
-            {currentUrl ? 'Заменить' : 'Загрузить'}
+            {currentUrl ? t.settings.replace : t.settings.upload}
           </Button>
           {currentUrl && (
             <Button
@@ -126,7 +124,7 @@ function LogoSlot({
               onClick={() => reset.mutate()}
               disabled={reset.isPending}
             >
-              Сбросить
+              {t.settings.reset}
             </Button>
           )}
         </Stack>
@@ -144,6 +142,7 @@ function LogoSlot({
 }
 
 export function SettingsPage() {
+  const t = useT()
   const queryClient = useQueryClient()
   const { data: settings } = useSettings()
   const [form, setForm] = useState<Partial<AppSettings>>({})
@@ -180,16 +179,16 @@ export function SettingsPage() {
     try {
       await save.mutateAsync()
     } catch (err) {
-      setError(errorMessage(err, 'Не удалось сохранить настройки'))
+      setError(errorMessage(err, t.settings.saveFailed))
     }
   }
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 1000 }}>
       <Box>
-        <Typography variant="h4">Настройки системы</Typography>
+        <Typography variant="h4">{t.settings.title}</Typography>
         <Typography color="text.secondary" variant="body2">
-          Логотип и реквизиты подставляются в шапку сайта, систему и письма.
+          {t.settings.subtitle}
         </Typography>
       </Box>
 
@@ -198,7 +197,7 @@ export function SettingsPage() {
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Как выглядит шапка
+            {t.settings.preview}
           </Typography>
           <Stack
             direction="row"
@@ -231,14 +230,14 @@ export function SettingsPage() {
       >
         {VARIANTS.map((variant) => (
           <LogoSlot
-            key={variant.key}
-            variant={variant.key}
-            title={variant.title}
-            hint={variant.hint}
+            key={variant}
+            variant={variant}
+            title={t.settings.logos[variant].title}
+            hint={t.settings.logos[variant].hint}
             currentUrl={
-              variant.key === 'light'
+              variant === 'light'
                 ? (settings?.logo_url ?? null)
-                : variant.key === 'dark'
+                : variant === 'dark'
                   ? (settings?.logo_dark_url ?? null)
                   : (settings?.favicon_url ?? null)
             }
@@ -250,18 +249,18 @@ export function SettingsPage() {
       <Card>
         <CardContent>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Реквизиты компании
+            {t.settings.company}
           </Typography>
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
-                label="Название"
+                label={t.settings.companyName}
                 value={form.company_name ?? ''}
                 onChange={(event) => setForm({ ...form, company_name: event.target.value })}
                 fullWidth
               />
               <TextField
-                label="Юридическое лицо"
+                label={t.settings.legalName}
                 value={form.legal_name ?? ''}
                 onChange={(event) => setForm({ ...form, legal_name: event.target.value })}
                 fullWidth
@@ -269,27 +268,27 @@ export function SettingsPage() {
             </Stack>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
-                label="Телефон"
+                label={t.settings.phone}
                 value={form.phone ?? ''}
                 onChange={(event) => setForm({ ...form, phone: event.target.value })}
                 fullWidth
               />
               <TextField
-                label="Почта"
+                label={t.settings.email}
                 value={form.email ?? ''}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
                 fullWidth
               />
             </Stack>
             <TextField
-              label="Адрес"
+              label={t.settings.address}
               value={form.address ?? ''}
               onChange={(event) => setForm({ ...form, address: event.target.value })}
               fullWidth
             />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
-                label="Основной цвет"
+                label={t.settings.primaryColor}
                 type="color"
                 value={form.primary_color ?? '#00533B'}
                 onChange={(event) => setForm({ ...form, primary_color: event.target.value })}
@@ -297,7 +296,7 @@ export function SettingsPage() {
                 fullWidth
               />
               <TextField
-                label="Акцентный цвет"
+                label={t.settings.accentColor}
                 type="color"
                 value={form.accent_color ?? '#D4AF37'}
                 onChange={(event) => setForm({ ...form, accent_color: event.target.value })}
@@ -311,7 +310,7 @@ export function SettingsPage() {
 
       <Box>
         <Button variant="contained" size="large" onClick={handleSave} disabled={save.isPending}>
-          Сохранить настройки
+          {t.settings.submit}
         </Button>
       </Box>
 
@@ -319,7 +318,7 @@ export function SettingsPage() {
         open={saved}
         autoHideDuration={3000}
         onClose={() => setSaved(false)}
-        message="Настройки сохранены"
+        message={t.settings.saved}
       />
     </Stack>
   )
