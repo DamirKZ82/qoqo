@@ -26,13 +26,30 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+/**
+ * Признак того, что пользователь вышел сам.
+ *
+ * Списки опрашивают сервер по таймеру, поэтому в момент выхода почти всегда
+ * есть отправленный запрос. Он вернётся с 401 уже после сброса токена, и без
+ * этого флага перехватчик увёл бы на форму входа, перебив переход на сайт.
+ */
+let signingOut = false
+
+export function beginSignOut(): void {
+  signingOut = true
+  // Хвост запросов приходит в ближайшие мгновения после выхода.
+  window.setTimeout(() => {
+    signingOut = false
+  }, 3000)
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Токен истёк или отозван — выкидываем на вход, но только из закрытой части.
     const isAuthError = error?.response?.status === 401
     const onPublicPage = ['/', '/login', '/set-password'].includes(window.location.pathname)
-    if (isAuthError && !onPublicPage) {
+    if (isAuthError && !onPublicPage && !signingOut) {
       localStorage.removeItem(TOKEN_KEY)
       window.location.assign('/login')
     }

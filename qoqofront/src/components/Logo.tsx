@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box'
-import { useTheme } from '@mui/material/styles'
+import { useColorScheme } from '@mui/material/styles'
 
 import { mediaUrl } from '../api/client'
 import { useSettings } from '../api/queries'
@@ -28,9 +28,13 @@ interface LogoProps {
  */
 export function Logo({ height = 40, dark }: LogoProps) {
   const { data: settings } = useSettings()
-  const theme = useTheme()
 
-  const onDark = dark ?? theme.palette.mode === 'dark'
+  // Тема собрана на CSS-переменных, поэтому theme.palette.mode всегда равен
+  // схеме по умолчанию и активную не отражает — спрашиваем у useColorScheme.
+  const { mode, systemMode } = useColorScheme()
+  const scheme = (mode === 'system' ? systemMode : mode) ?? 'light'
+
+  const onDark = dark ?? scheme === 'dark'
   const uploaded = onDark ? settings?.logo_dark_url || settings?.logo_url : settings?.logo_url
   const fallback = onDark ? logoDarkSrc : logoSrc
 

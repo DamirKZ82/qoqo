@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { api, TOKEN_KEY } from '../api/client'
+import { api, beginSignOut, TOKEN_KEY } from '../api/client'
 import { useCurrentUser } from '../api/queries'
 import type { CurrentUser, UserRole } from '../api/types'
 
@@ -40,9 +40,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const logout = useCallback(() => {
+    // Порядок важен: сначала гасим опросы и помечаем выход, потом убираем токен.
+    beginSignOut()
+    void queryClient.cancelQueries()
     localStorage.removeItem(TOKEN_KEY)
     setTokenState(null)
     queryClient.clear()
+
+    // Уходим полной загрузкой, а не router-навигацией. Сброс сессии и смена
+    // адреса — два разных обновления состояния: маршрутизатор применяет своё
+    // с задержкой, и ProtectedRoute успевает отрисоваться уже без пользователя,
+    // перебивая переход своим редиректом на форму входа. Полная загрузка
+    // заодно снимает все запросы и не оставляет старого состояния в памяти.
+    window.location.assign('/')
   }, [queryClient])
 
   const value = useMemo<AuthContextValue>(

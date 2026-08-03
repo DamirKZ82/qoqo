@@ -99,6 +99,24 @@ export const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        // Chrome при автозаполнении закрашивает поле своим фоном и не смотрит на
+        // тему: в тёмном оформлении получается светло-синий прямоугольник, на
+        // котором не читаются ни подпись, ни текст. Перекрываем фон тенью
+        // внутрь — цвет самого поля переопределить нельзя.
+        'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active':
+          {
+            WebkitBoxShadow: '0 0 0 1000px var(--mui-palette-background-paper) inset',
+            WebkitTextFillColor: 'var(--mui-palette-text-primary)',
+            caretColor: 'var(--mui-palette-text-primary)',
+            borderRadius: 'inherit',
+            // Анимация отодвигает применение стиля до момента, когда Chrome
+            // уже нарисовал свой фон.
+            transition: 'background-color 100000s ease-in-out 0s',
+          },
+      },
+    },
     MuiButton: {
       defaultProps: { disableElevation: true },
       styleOverrides: {

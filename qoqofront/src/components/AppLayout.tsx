@@ -142,11 +142,8 @@ export function AppLayout() {
 
   const activeMobile = mobileItems.findIndex((item) => isActive(item.to))
 
-  function handleLogout() {
-    logout()
-    // После выхода — на сайт, а не на форму входа: иначе кажется, что вход не удался.
-    navigate('/', { replace: true })
-  }
+  // Выход сам уводит на сайт: см. комментарий в AuthContext.logout.
+  const handleLogout = logout
 
   const menu = (
     <Box sx={{ width: 264, display: 'flex', flexDirection: 'column', height: '100%' }}>
