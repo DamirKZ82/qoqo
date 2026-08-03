@@ -11,4 +11,4 @@
 
 ## Репозиторий
 
-https://github.com/DamirKZ82/gogo
+https://github.com/DamirKZ82/qoqo
