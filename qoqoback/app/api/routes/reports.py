@@ -18,6 +18,7 @@ from app.models import (
     OrderLine,
     OrderStatus,
     Outlet,
+    OutletType,
     ProductCategory,
     User,
     UserRole,
@@ -35,6 +36,10 @@ from app.schemas.report import (
     ReportTotals,
     SalesPoint,
     SalesReport,
+    TopReport,
+    TopRow,
+    TurnoverReport,
+    TurnoverRow,
     dimension_title,
 )
 from app.services.orders import visible_orders_conditions
@@ -74,6 +79,10 @@ class ReportQuery:
     outlet_id: uuid.UUID | None
     counterparty_id: uuid.UUID | None
     author_id: uuid.UUID | None
+    # Товарные фильтры действуют на уровне строк заявки, а не заявки целиком:
+    # «продажи филе» — это суммы по строкам с филе, а не по заявкам, где оно есть.
+    nomenclature_id: uuid.UUID | None = None
+    category_id: uuid.UUID | None = None
 
     @property
     def days(self) -> int:
@@ -91,6 +100,8 @@ class ReportQuery:
             outlet_id=self.outlet_id,
             counterparty_id=self.counterparty_id,
             author_id=self.author_id,
+            nomenclature_id=self.nomenclature_id,
+            category_id=self.category_id,
         )
 
 
@@ -103,6 +114,8 @@ def report_query(
     outlet_id: uuid.UUID | None = None,
     counterparty_id: uuid.UUID | None = None,
     author_id: uuid.UUID | None = None,
+    nomenclature_id: uuid.UUID | None = None,
+    category_id: uuid.UUID | None = None,
 ) -> ReportQuery:
     today = datetime.now(UTC).date()
     end = date_to or today
@@ -126,6 +139,8 @@ def report_query(
         outlet_id=outlet_id,
         counterparty_id=counterparty_id,
         author_id=author_id,
+        nomenclature_id=nomenclature_id,
+        category_id=category_id,
     )
 
 
@@ -147,6 +162,21 @@ def _conditions(user: User, params: ReportQuery) -> list[ColumnElement[bool]]:
     if params.author_id is not None:
         conditions.append(Order.author_id == params.author_id)
 
+    return conditions
+
+
+def _line_conditions(params: ReportQuery) -> list[ColumnElement[bool]]:
+    """Условия, которые применимы только там, где присоединены строки заявки."""
+
+    conditions: list[ColumnElement[bool]] = []
+    if params.nomenclature_id is not None:
+        conditions.append(OrderLine.nomenclature_id == params.nomenclature_id)
+    if params.category_id is not None:
+        conditions.append(
+            OrderLine.nomenclature_id.in_(
+                select(Nomenclature.id).where(Nomenclature.category_id == params.category_id)
+            )
+        )
     return conditions
 
 
@@ -188,17 +218,18 @@ def _bucket_starts(group: PeriodGroup, params: ReportQuery) -> list[date]:
 # --- Итоги ---------------------------------------------------------------
 
 
-def _totals(db: Session, conditions: list[ColumnElement[bool]]) -> ReportTotals:
-    orders_row = db.execute(
+def _totals(
+    db: Session,
+    conditions: list[ColumnElement[bool]],
+    line_conditions: list[ColumnElement[bool]] | None = None,
+) -> ReportTotals:
+    # Всё считаем по строкам заявок: сумма заявки равна сумме её строк, зато
+    # товарные фильтры сужают и итоги, а не только разрезы.
+    row = db.execute(
         select(
-            func.count(Order.id),
-            func.coalesce(func.sum(Order.total_amount), 0),
+            func.count(func.distinct(Order.id)),
+            func.coalesce(func.sum(OrderLine.amount), 0),
             func.count(func.distinct(Order.outlet_id)),
-        ).where(*conditions)
-    ).one()
-
-    lines_row = db.execute(
-        select(
             func.count(OrderLine.id),
             func.coalesce(
                 func.sum(func.coalesce(OrderLine.quantity_shipped, OrderLine.quantity)), 0
@@ -206,8 +237,11 @@ def _totals(db: Session, conditions: list[ColumnElement[bool]]) -> ReportTotals:
         )
         .select_from(Order)
         .join(OrderLine, OrderLine.order_id == Order.id)
-        .where(*conditions)
+        .where(*conditions, *(line_conditions or []))
     ).one()
+
+    orders_row = (row[0], row[1], row[2])
+    lines_row = (row[3], row[4])
 
     orders_count = int(orders_row[0])
     total_amount = Decimal(orders_row[1])
@@ -235,16 +269,19 @@ def sales_report(
     """Продажи за период: итоги, сравнение с прошлым периодом и динамика."""
 
     conditions = _conditions(user, params)
+    line_conditions = _line_conditions(params)
     previous_params = params.previous
 
     bucket = func.date_trunc(group_by.value, Order.order_date)
     rows = db.execute(
         select(
             bucket.label("bucket"),
-            func.count(Order.id),
-            func.coalesce(func.sum(Order.total_amount), 0),
+            func.count(func.distinct(Order.id)),
+            func.coalesce(func.sum(OrderLine.amount), 0),
         )
-        .where(*conditions)
+        .select_from(Order)
+        .join(OrderLine, OrderLine.order_id == Order.id)
+        .where(*conditions, *line_conditions)
         .group_by(bucket)
     ).all()
 
@@ -262,8 +299,8 @@ def sales_report(
         date_from=params.date_from,
         date_to=params.date_to,
         group_by=group_by,
-        totals=_totals(db, conditions),
-        previous=_totals(db, _conditions(user, previous_params)),
+        totals=_totals(db, conditions, line_conditions),
+        previous=_totals(db, _conditions(user, previous_params), line_conditions),
         previous_from=previous_params.date_from,
         previous_to=previous_params.date_to,
         series=series,
@@ -322,6 +359,7 @@ def _breakdown_rows(
     conditions: list[ColumnElement[bool]],
     dimension: Dimension,
     limit: int | None,
+    line_conditions: list[ColumnElement[bool]] | None = None,
 ) -> tuple[list[BreakdownRow], Decimal, Decimal]:
     """Строки разреза, общая сумма по всем группам и сумма показанных строк."""
 
@@ -343,7 +381,11 @@ def _breakdown_rows(
     for entity, onclause, is_outer in joins:
         stmt = stmt.join(entity, onclause, isouter=is_outer)
 
-    stmt = stmt.where(*conditions).group_by(key, name).order_by(amount.desc())
+    stmt = (
+        stmt.where(*conditions, *(line_conditions or []))
+        .group_by(key, name)
+        .order_by(amount.desc())
+    )
 
     rows = db.execute(stmt).all()
     total = sum((Decimal(row.amount) for row in rows), Decimal(0))
@@ -374,7 +416,9 @@ def breakdown_report(
 ) -> BreakdownReport:
     """Продажи за период в выбранном разрезе, от большей суммы к меньшей."""
 
-    rows, total, shown = _breakdown_rows(db, _conditions(user, params), dimension, limit)
+    rows, total, shown = _breakdown_rows(
+        db, _conditions(user, params), dimension, limit, _line_conditions(params)
+    )
 
     return BreakdownReport(
         dimension=dimension,
@@ -397,7 +441,13 @@ def export_breakdown(
 ) -> Response:
     """Тот же разрез целиком, файлом CSV."""
 
-    rows, total, _ = _breakdown_rows(db, _conditions(user, params), dimension, limit=None)
+    rows, total, _ = _breakdown_rows(
+        db,
+        _conditions(user, params),
+        dimension,
+        limit=None,
+        line_conditions=_line_conditions(params),
+    )
 
     buffer = io.StringIO()
     # Точка с запятой и BOM — иначе Excel открывает файл одной колонкой
@@ -421,4 +471,164 @@ def export_breakdown(
         content="﻿" + buffer.getvalue(),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# --- Топ продаж ----------------------------------------------------------
+
+
+@router.get("/top", response_model=TopReport)
+def top_report(
+    db: DbSession,
+    user: ReportUser,
+    params: ReportParams,
+    dimension: Dimension = Dimension.NOMENCLATURE,
+    limit: int = Query(default=10, ge=1, le=100),
+) -> TopReport:
+    """Лидеры продаж за период с приростом к предыдущему такому же периоду.
+
+    Прирост считается по тому же ключу разреза, поэтому позиция, которой в
+    прошлом периоде не продавали, показывается как новая, а не как рост в
+    бесконечное число раз.
+    """
+
+    line_conditions = _line_conditions(params)
+    rows, total, _ = _breakdown_rows(
+        db, _conditions(user, params), dimension, limit, line_conditions
+    )
+
+    previous_params = params.previous
+    previous_rows, _, _ = _breakdown_rows(
+        db, _conditions(user, previous_params), dimension, None, line_conditions
+    )
+    previous_by_id = {row.id: row.total_amount for row in previous_rows}
+
+    result: list[TopRow] = []
+    for row in rows:
+        previous_amount = previous_by_id.get(row.id, Decimal(0))
+        change = (
+            float((row.total_amount - previous_amount) / previous_amount)
+            if previous_amount
+            else None
+        )
+        result.append(
+            TopRow(
+                id=row.id,
+                name=row.name,
+                orders_count=row.orders_count,
+                quantity=row.quantity,
+                total_amount=row.total_amount,
+                share=float(row.total_amount / total) if total else 0.0,
+                previous_amount=previous_amount,
+                change=change,
+            )
+        )
+
+    return TopReport(
+        date_from=params.date_from,
+        date_to=params.date_to,
+        previous_from=previous_params.date_from,
+        previous_to=previous_params.date_to,
+        dimension=dimension,
+        dimension_title=DIMENSION_TITLES[dimension],
+        rows=result,
+    )
+
+
+# --- Оборачиваемость -----------------------------------------------------
+
+# Точка, не заказывавшая дольше этого срока, считается уснувшей.
+SLEEPING_AFTER_DAYS = 30
+LOST_AFTER_DAYS = 60
+
+
+def _turnover_status(days_since_last: int | None) -> str:
+    if days_since_last is None:
+        return "no_orders"
+    if days_since_last > LOST_AFTER_DAYS:
+        return "lost"
+    if days_since_last > SLEEPING_AFTER_DAYS:
+        return "sleeping"
+    return "active"
+
+
+@router.get("/turnover", response_model=TurnoverReport)
+def turnover_report(
+    db: DbSession,
+    user: ReportUser,
+    params: ReportParams,
+    limit: int = Query(default=100, ge=1, le=500),
+) -> TurnoverReport:
+    """Как часто заказывают торговые точки.
+
+    Это оборачиваемость по точкам, а не по запасам: остатков на складах система
+    пока не ведёт, поэтому оборачиваемость товара считать не из чего. Здесь —
+    частота заказов, средний интервал между ними и давность последней заявки.
+    """
+
+    conditions = _conditions(user, params)
+    line_conditions = _line_conditions(params)
+
+    order_date = func.date(Order.order_date)
+    stmt = (
+        select(
+            Order.outlet_id,
+            func.coalesce(Outlet.name, "Без торговой точки").label("name"),
+            OutletType.name.label("outlet_type"),
+            func.count(func.distinct(Order.id)).label("orders_count"),
+            func.coalesce(func.sum(OrderLine.amount), 0).label("amount"),
+            func.min(order_date).label("first_order"),
+            func.max(order_date).label("last_order"),
+        )
+        .select_from(Order)
+        .join(OrderLine, OrderLine.order_id == Order.id)
+        .join(Outlet, Outlet.id == Order.outlet_id, isouter=True)
+        .join(OutletType, OutletType.id == Outlet.outlet_type_id, isouter=True)
+        .where(*conditions, *line_conditions)
+        .group_by(Order.outlet_id, Outlet.name, OutletType.name)
+        .order_by(func.count(func.distinct(Order.id)).desc())
+        .limit(limit)
+    )
+
+    today = datetime.now(UTC).date()
+    rows: list[TurnoverRow] = []
+
+    for row in db.execute(stmt).all():
+        orders_count = int(row.orders_count)
+        amount = Decimal(row.amount)
+        first_order, last_order = row.first_order, row.last_order
+
+        # Средний интервал: период между первой и последней заявкой, делённый на
+        # число промежутков. При одной заявке промежутков нет.
+        interval = None
+        if orders_count > 1 and first_order and last_order:
+            interval = round((last_order - first_order).days / (orders_count - 1), 1)
+
+        days_since_last = (today - last_order).days if last_order else None
+
+        rows.append(
+            TurnoverRow(
+                id=row.outlet_id,
+                name=row.name,
+                outlet_type=row.outlet_type,
+                orders_count=orders_count,
+                total_amount=amount,
+                average_check=(
+                    (amount / orders_count).quantize(Decimal("0.01"))
+                    if orders_count
+                    else Decimal(0)
+                ),
+                first_order=first_order,
+                last_order=last_order,
+                average_interval_days=interval,
+                days_since_last=days_since_last,
+                status=_turnover_status(days_since_last),
+            )
+        )
+
+    return TurnoverReport(
+        date_from=params.date_from,
+        date_to=params.date_to,
+        rows=rows,
+        sleeping_after_days=SLEEPING_AFTER_DAYS,
     )

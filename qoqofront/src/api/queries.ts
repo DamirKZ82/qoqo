@@ -14,6 +14,8 @@ import type {
   PeriodGroup,
   ReportDimension,
   SalesReport,
+  TopReport,
+  TurnoverReport,
 } from './types'
 
 // --- Публичные данные (доступны без авторизации) -------------------------
@@ -144,6 +146,8 @@ export interface ReportFilters {
   counterparty_id?: string
   outlet_id?: string
   author_id?: string
+  nomenclature_id?: string
+  category_id?: string
 }
 
 export function useSalesReport(filters: ReportFilters, groupBy: PeriodGroup) {
@@ -164,6 +168,24 @@ export function useBreakdown(filters: ReportFilters, dimension: ReportDimension,
     queryFn: async () =>
       (await api.get<BreakdownReport>('/reports/breakdown', { params: { ...filters, dimension, limit } }))
         .data,
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useTopReport(filters: ReportFilters, dimension: ReportDimension, limit = 10) {
+  return useQuery({
+    queryKey: ['reports', 'top', filters, dimension, limit],
+    queryFn: async () =>
+      (await api.get<TopReport>('/reports/top', { params: { ...filters, dimension, limit } })).data,
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useTurnoverReport(filters: ReportFilters) {
+  return useQuery({
+    queryKey: ['reports', 'turnover', filters],
+    queryFn: async () =>
+      (await api.get<TurnoverReport>('/reports/turnover', { params: filters })).data,
     placeholderData: (previous) => previous,
   })
 }

@@ -227,3 +227,48 @@ export interface OrderStats {
   orders_today: number
   total_amount_today: string
 }
+
+export interface TopRow {
+  id: string | null
+  name: string
+  orders_count: number
+  quantity: string
+  total_amount: string
+  share: number
+  previous_amount: string
+  /** Прирост к прошлому периоду. null — в прошлом периоде продаж не было. */
+  change: number | null
+}
+
+export interface TopReport {
+  date_from: string
+  date_to: string
+  previous_from: string
+  previous_to: string
+  dimension: ReportDimension
+  dimension_title: string
+  rows: TopRow[]
+}
+
+export type TurnoverStatus = 'active' | 'sleeping' | 'lost' | 'no_orders'
+
+export interface TurnoverRow {
+  id: string | null
+  name: string
+  outlet_type: string | null
+  orders_count: number
+  total_amount: string
+  average_check: string
+  first_order: string | null
+  last_order: string | null
+  average_interval_days: number | null
+  days_since_last: number | null
+  status: TurnoverStatus
+}
+
+export interface TurnoverReport {
+  date_from: string
+  date_to: string
+  rows: TurnoverRow[]
+  sleeping_after_days: number
+}

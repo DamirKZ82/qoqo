@@ -25,6 +25,8 @@ import Typography from '@mui/material/Typography'
 import { useMemo, useState } from 'react'
 
 import { errorMessage } from '../../api/client'
+import { TopSales } from '../../components/TopSales'
+import { TurnoverTable } from '../../components/TurnoverTable'
 import {
   downloadBreakdownCsv,
   useBreakdown,
@@ -164,6 +166,10 @@ export function ReportsPage() {
   const [asTable, setAsTable] = useState(false)
   const [warehouseId, setWarehouseId] = useState('')
   const [counterpartyId, setCounterpartyId] = useState('')
+  const [outletId, setOutletId] = useState('')
+  const [authorId, setAuthorId] = useState('')
+  const [nomenclatureId, setNomenclatureId] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const [exportError, setExportError] = useState<string | null>(null)
 
   const initial = PRESETS[1].range()
@@ -176,8 +182,21 @@ export function ReportsPage() {
       date_to: dateTo,
       warehouse_id: warehouseId || undefined,
       counterparty_id: counterpartyId || undefined,
+      outlet_id: outletId || undefined,
+      author_id: authorId || undefined,
+      nomenclature_id: nomenclatureId || undefined,
+      category_id: categoryId || undefined,
     }),
-    [dateFrom, dateTo, warehouseId, counterpartyId],
+    [
+      dateFrom,
+      dateTo,
+      warehouseId,
+      counterpartyId,
+      outletId,
+      authorId,
+      nomenclatureId,
+      categoryId,
+    ],
   )
 
   const { data: report, isPending, error } = useSalesReport(filters, groupBy)
@@ -187,6 +206,25 @@ export function ReportsPage() {
     only_active: true,
     limit: 100,
   })
+  // Точки сужаем до выбранного контрагента: иначе список необозрим.
+  const { data: outlets } = useReference<ReferenceItem>('outlets', {
+    only_active: true,
+    limit: 300,
+    counterparty_id: counterpartyId || undefined,
+  })
+  const { data: products } = useReference<ReferenceItem>('nomenclature', {
+    only_active: true,
+    limit: 300,
+  })
+  const { data: categories } = useReference<ReferenceItem>('product-categories', {
+    only_active: true,
+    limit: 100,
+  })
+  // У сотрудников поле называется full_name, а не name, — берём отдельным типом.
+  const { data: employees } = useReference<{ id: string; full_name: string }>('users', {
+    limit: 200,
+  })
+
   const { data: counterparties } = useReference<ReferenceItem>('counterparties', {
     only_active: true,
     limit: 200,
@@ -292,6 +330,79 @@ export function ReportsPage() {
                   </MenuItem>
                 ))}
               </TextField>
+
+              <TextField
+                select
+                label={t.reports.dimensions.outlet}
+                value={outletId}
+                onChange={(event) => setOutletId(event.target.value)}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="">{t.reports.allOutlets}</MenuItem>
+                {outlets?.items.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                select
+                label={t.reports.dimensions.nomenclature}
+                value={nomenclatureId}
+                onChange={(event) => setNomenclatureId(event.target.value)}
+                sx={{ minWidth: 220 }}
+              >
+                <MenuItem value="">{t.reports.allNomenclature}</MenuItem>
+                {products?.items.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                select
+                label={t.reports.dimensions.category}
+                value={categoryId}
+                onChange={(event) => setCategoryId(event.target.value)}
+                sx={{ minWidth: 180 }}
+              >
+                <MenuItem value="">{t.reports.allCategories}</MenuItem>
+                {categories?.items.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <TextField
+                select
+                label={t.reports.dimensions.sales_rep}
+                value={authorId}
+                onChange={(event) => setAuthorId(event.target.value)}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="">{t.reports.allEmployees}</MenuItem>
+                {employees?.items.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.full_name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <Button
+                onClick={() => {
+                  setWarehouseId('')
+                  setCounterpartyId('')
+                  setOutletId('')
+                  setAuthorId('')
+                  setNomenclatureId('')
+                  setCategoryId('')
+                }}
+              >
+                {t.reports.resetFilters}
+              </Button>
             </Stack>
           </Stack>
         </CardContent>
@@ -518,6 +629,10 @@ export function ReportsPage() {
           )}
         </CardContent>
       </Card>
+      <TopSales filters={filters} dimension={dimension} onDimensionChange={setDimension} />
+
+      <TurnoverTable filters={filters} />
+
     </Stack>
   )
 }

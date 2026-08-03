@@ -131,3 +131,59 @@ class BreakdownReport(BaseModel):
     # Сумма по строкам ниже: при limit хвост в них не попадает.
     shown_amount: Decimal
     rows: list[BreakdownRow]
+
+
+# --- Топ продаж ----------------------------------------------------------
+
+
+class TopRow(BaseModel):
+    """Строка топа: показатель за период и его изменение к прошлому."""
+
+    id: uuid.UUID | None
+    name: str
+    orders_count: int
+    quantity: Decimal
+    total_amount: Decimal
+    share: float
+    previous_amount: Decimal
+    # Прирост к прошлому периоду в долях. None — в прошлом периоде продаж не
+    # было, и процент роста посчитать не от чего.
+    change: float | None
+
+
+class TopReport(BaseModel):
+    date_from: date
+    date_to: date
+    previous_from: date
+    previous_to: date
+    dimension: Dimension
+    dimension_title: str
+    rows: list[TopRow]
+
+
+# --- Оборачиваемость -----------------------------------------------------
+
+
+class TurnoverRow(BaseModel):
+    """Как часто торговая точка заказывает."""
+
+    id: uuid.UUID | None
+    name: str
+    outlet_type: str | None
+    orders_count: int
+    total_amount: Decimal
+    average_check: Decimal
+    first_order: date | None
+    last_order: date | None
+    # Среднее число дней между заявками. None — заявка была одна, интервала нет.
+    average_interval_days: float | None
+    days_since_last: int | None
+    status: str
+
+
+class TurnoverReport(BaseModel):
+    date_from: date
+    date_to: date
+    rows: list[TurnoverRow]
+    # Порог в днях, по которому точка считается уснувшей.
+    sleeping_after_days: int
