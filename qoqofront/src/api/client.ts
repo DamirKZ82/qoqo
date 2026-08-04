@@ -43,8 +43,35 @@ export function beginSignOut(): void {
   }, 3000)
 }
 
+/** Ошибка настройки, а не сбой: её текст показываем как есть. */
+export class MisconfiguredApiError extends Error {
+  name = 'MisconfiguredApiError'
+}
+
+/**
+ * Признак того, что вместо данных пришла страница сайта.
+ *
+ * Так выглядит незаданный VITE_API_URL: запрос уходит на собственный домен,
+ * правило SPA-роутинга отдаёт index.html, и приходит успешный ответ с HTML
+ * внутри. Ошибки нет, поэтому дальше код делает .map по строке и падает где-то
+ * в глубине React — по такому следу причину не найти.
+ */
+function looksLikeHtmlPage(response: { headers: unknown; data: unknown }): boolean {
+  const type = (response.headers as Record<string, string> | undefined)?.['content-type'] ?? ''
+  return type.includes('text/html') || (typeof response.data === 'string' && /^\s*<!doctype html/i.test(response.data))
+}
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (looksLikeHtmlPage(response)) {
+      throw new MisconfiguredApiError(
+        `Вместо данных API вернул страницу сайта (${response.config?.url}). ` +
+          'Скорее всего, не задан VITE_API_URL и запрос ушёл на домен сайта. ' +
+          'Переменная попадает в сборку, поэтому после её изменения нужен передеплой.',
+      )
+    }
+    return response
+  },
   (error) => {
     // Токен истёк или отозван — выкидываем на вход, но только из закрытой части.
     const isAuthError = error?.response?.status === 401
@@ -72,6 +99,10 @@ export function setApiMessages(next: { generic: string; network: string }): void
 
 /** Достаёт текст ошибки из ответа FastAPI. */
 export function errorMessage(error: unknown, fallback?: string): string {
+  // Настройку разворачиваем текстом: подставлять сюда общее «Не удалось»
+  // означало бы спрятать единственную подсказку о причине.
+  if (error instanceof MisconfiguredApiError) return error.message
+
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail
     if (typeof detail === 'string') return detail
