@@ -175,6 +175,14 @@ class Contract(ReferenceMixin, Base):
     contract_date: Mapped[date | None] = mapped_column(Date)
     # Отсрочка платежа в днях.
     payment_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Тип цен и скидка договора: по ним подбирается цена в заявке, чтобы
+    # продавец не вводил её руками и не ошибался.
+    price_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("price_types.id", ondelete="SET NULL")
+    )
+    discount_percent: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), default=Decimal(0), nullable=False
+    )
     credit_limit: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=Decimal(0), nullable=False
     )

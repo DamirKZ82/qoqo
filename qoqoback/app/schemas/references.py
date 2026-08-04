@@ -200,6 +200,8 @@ class ContractWrite(ReferenceBase):
     contract_date: date | None = None
     payment_days: int = 0
     credit_limit: Decimal = Decimal(0)
+    price_type_id: uuid.UUID | None = None
+    discount_percent: Decimal = Decimal(0)
 
 
 class ContractRead(ReferenceRead):
@@ -209,3 +211,19 @@ class ContractRead(ReferenceRead):
     contract_date: date | None
     payment_days: int
     credit_limit: Decimal
+    price_type_id: uuid.UUID | None
+    discount_percent: Decimal
+
+
+# --- Тип цены ------------------------------------------------------------
+
+
+class PriceTypeWrite(ReferenceBase):
+    sort_order: int = 0
+    # Тип по умолчанию используется, когда в договоре ничего не выбрано.
+    is_default: bool = False
+
+
+class PriceTypeRead(ReferenceRead):
+    sort_order: int
+    is_default: bool

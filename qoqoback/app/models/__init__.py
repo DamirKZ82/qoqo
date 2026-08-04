@@ -10,6 +10,7 @@ from app.models.order import (
     OrderStatus,
 )
 from app.models.payment import METHOD_TITLES, Payment, PaymentMethod
+from app.models.price import Price, PriceType
 from app.models.references import (
     Contract,
     Counterparty,
@@ -93,6 +94,8 @@ __all__ = [
     "Payment",
     "PaymentMethod",
     "PostCategory",
+    "Price",
+    "PriceType",
     "ProductCategory",
     "Return",
     "ReturnLine",

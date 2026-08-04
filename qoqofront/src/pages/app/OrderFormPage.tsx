@@ -16,7 +16,7 @@ import Typography from '@mui/material/Typography'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { errorMessage } from '../../api/client'
+import { api, errorMessage } from '../../api/client'
 import {
   useChangeOrderStatus,
   useOrder,
@@ -27,6 +27,15 @@ import type { Nomenclature, Outlet, ReferenceItem } from '../../api/types'
 import { useT } from '../../i18n'
 import { formatMoney } from '../../lib/format'
 import { useOffline } from '../../offline/OfflineContext'
+
+interface ResolvedPrice {
+  nomenclature_id: string
+  base_price: string
+  discount_percent: string
+  price: string
+  price_type_name: string | null
+  source: string
+}
 
 interface LineDraft {
   key: string
@@ -107,6 +116,42 @@ export function OrderFormPage() {
       })),
     )
   }, [existing])
+
+  // Цена зависит от договора: тип цен и скидка — его реквизиты. При смене
+  // договора пересчитываем строки, иначе в заявке останутся цены прошлого.
+  useEffect(() => {
+    if (lines.length === 0) return
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const { data } = await api.get<ResolvedPrice[]>('/prices/resolve', {
+          params: {
+            contract_id: contract?.id,
+            nomenclature_ids: lines.map((line) => line.nomenclature_id),
+          },
+          paramsSerializer: { indexes: null },
+        })
+        if (cancelled) return
+        const byId = new Map(data.map((item) => [item.nomenclature_id, item]))
+        setLines((current) =>
+          current.map((line) => {
+            const resolved = byId.get(line.nomenclature_id)
+            return resolved ? { ...line, price: String(Number(resolved.price)) } : line
+          }),
+        )
+      } catch {
+        // Не смогли подобрать — оставляем цены как есть, заявку это не ломает.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+    // Намеренно следим только за договором: пересчёт при каждом изменении
+    // строк затирал бы цену, исправленную вручную.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contract?.id])
 
   const total = useMemo(
     () => lines.reduce((sum, line) => sum + Number(line.quantity || 0) * Number(line.price || 0), 0),

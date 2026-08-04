@@ -404,6 +404,9 @@ export const kk: Dictionary = {
   },
 
   references: {
+    priceTypes: 'Баға түрлері',
+    priceTypeSingular: 'баға түрін',
+    priceTypesHint: 'Бөлшек, көтерме, желі бағасы. Өтінім бағасын шарт айқындайды.',
     title: 'Анықтамалықтар',
     subtitle:
       'Барлық элементтердің GUID-і бар — 1С-пен алмасуда дәл сол идентификатор қолданылады.',
@@ -417,6 +420,9 @@ export const kk: Dictionary = {
   },
 
   fields: {
+    priceType: 'Баға түрі',
+    discountPercent: 'Жеңілдік, %',
+    isDefault: 'Әдепкі',
     code: 'Коды',
     name: 'Атауы',
     fullName: 'Толық атауы',

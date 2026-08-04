@@ -259,36 +259,6 @@ export function AppLayout() {
         })}
       </Box>
 
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        <Stack direction="row" spacing={0.5} sx={{ mb: 1, alignItems: 'center' }}>
-          <LanguageSwitch />
-          <ThemeToggle />
-        </Stack>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36, fontSize: 14 }}>
-            {user ? initials(user.full_name) : '?'}
-          </Avatar>
-          <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-            <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
-              {user?.full_name}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap component="div">
-              {user ? t.roles[user.role] : ''}
-            </Typography>
-          </Box>
-          <Tooltip title={t.telegram.title}>
-            <IconButton onClick={() => setTelegramOpen(true)} size="small">
-              <TelegramIcon fontSize="small" color={user?.telegram_linked ? 'primary' : 'inherit'} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t.nav.logout}>
-            <IconButton onClick={handleLogout} size="small">
-              <LogoutIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Box>
     </Box>
   )
 
@@ -314,13 +284,65 @@ export function AppLayout() {
       )}
 
       <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        {!isMobile && (
+          <AppBar
+            position="sticky"
+            sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Toolbar sx={{ gap: 1, minHeight: 56 }}>
+              <Box sx={{ flexGrow: 1 }} />
+              <LanguageSwitch />
+              <ThemeToggle />
+
+              <Tooltip title={t.telegram.title}>
+                <IconButton onClick={() => setTelegramOpen(true)} size="small">
+                  <TelegramIcon
+                    fontSize="small"
+                    color={user?.telegram_linked ? 'primary' : 'inherit'}
+                  />
+                </IconButton>
+              </Tooltip>
+
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', ml: 1 }}>
+                <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 13 }}>
+                  {user ? initials(user.full_name) : '?'}
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" noWrap sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                    {user?.full_name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap component="div">
+                    {user ? t.roles[user.role] : ''}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Tooltip title={t.nav.logout}>
+                <IconButton onClick={handleLogout} size="small">
+                  <LogoutIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Toolbar>
+          </AppBar>
+        )}
+
         {isMobile && (
           <AppBar
             position="sticky"
             sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
           >
             <Toolbar sx={{ gap: 1 }}>
-              <IconButton edge="start" onClick={() => setDrawerOpen(true)} aria-label={t.nav.menu}>
+              <IconButton
+                edge="start"
+                // Снимаем фокус с кнопки: открытая шторка накрывает содержимое
+                // aria-hidden, а сфокусированный элемент под ним недопустим —
+                // на это ругаются и браузер, и программы чтения с экрана.
+                onClick={(event) => {
+                  event.currentTarget.blur()
+                  setDrawerOpen(true)
+                }}
+                aria-label={t.nav.menu}
+              >
                 <MenuIcon />
               </IconButton>
               <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
@@ -329,9 +351,23 @@ export function AppLayout() {
               <Box sx={{ flexGrow: 1 }} />
               <LanguageSwitch />
               <ThemeToggle />
+              {/* Имя на телефон не помещается — только значки и аватар. */}
+              <Tooltip title={t.telegram.title}>
+                <IconButton onClick={() => setTelegramOpen(true)} size="small">
+                  <TelegramIcon
+                    fontSize="small"
+                    color={user?.telegram_linked ? 'primary' : 'inherit'}
+                  />
+                </IconButton>
+              </Tooltip>
               <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 13 }}>
                 {user ? initials(user.full_name) : '?'}
               </Avatar>
+              <Tooltip title={t.nav.logout}>
+                <IconButton onClick={handleLogout} size="small">
+                  <LogoutIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Toolbar>
           </AppBar>
         )}

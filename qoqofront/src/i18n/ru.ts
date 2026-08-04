@@ -419,6 +419,9 @@ export const ru = {
   },
 
   references: {
+    priceTypes: 'Типы цен',
+    priceTypeSingular: 'тип цены',
+    priceTypesHint: 'Розница, опт, цена для сети. Договор задаёт, по какому типу считать заявку.',
     title: 'Справочники',
     subtitle: 'Все элементы имеют GUID — тот же идентификатор используется при обмене с 1С.',
     all: 'Все справочники',
@@ -431,6 +434,9 @@ export const ru = {
   },
 
   fields: {
+    priceType: 'Тип цен',
+    discountPercent: 'Скидка, %',
+    isDefault: 'По умолчанию',
     code: 'Код',
     name: 'Наименование',
     fullName: 'Полное наименование',

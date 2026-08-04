@@ -140,6 +140,17 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
     ],
   },
   {
+    resource: 'price-types',
+    title: t.references.priceTypes,
+    singular: t.references.priceTypeSingular,
+    description: t.references.priceTypesHint,
+    fields: [
+      ...codeAndName,
+      { name: 'is_default', label: t.fields.isDefault, type: 'checkbox', inList: true },
+      { name: 'sort_order', label: t.fields.sortOrder, type: 'number' },
+    ],
+  },
+  {
     resource: 'contracts',
       title: t.referenceTitles['contracts'],
       singular: t.referenceSingulars['contracts'],
@@ -150,6 +161,14 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
       { name: 'number', label: t.fields.number, inList: true },
       { name: 'contract_date', label: t.fields.date, type: 'date', inList: true },
       { name: 'payment_days', label: t.fields.paymentDays, type: 'number' },
+      {
+        name: 'price_type_id',
+        label: t.fields.priceType,
+        type: 'ref',
+        refResource: 'price-types',
+        inList: true,
+      },
+      { name: 'discount_percent', label: t.fields.discountPercent, type: 'number', inList: true },
       { name: 'credit_limit', label: t.fields.creditLimit, type: 'number' },
     ],
   },

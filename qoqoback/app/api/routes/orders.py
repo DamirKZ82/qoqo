@@ -27,7 +27,7 @@ from app.schemas.order import (
     OrderStatusChange,
     OrderWrite,
 )
-from app.services import notifications, settlements, stock
+from app.services import notifications, pricing, settlements, stock
 from app.services.orders import visible_orders_conditions
 
 router = APIRouter(prefix="/orders", tags=["Заявки"])
@@ -133,7 +133,13 @@ def _rebuild_lines(db: Session, order: Order, payload: OrderWrite) -> None:
                 detail=f"Номенклатура {line.nomenclature_id} не найдена",
             )
 
-        price = line.price if line.price is not None else nomenclature.price
+        # Цену подбираем по договору: тип цен и скидка — его реквизиты.
+        # Иначе сеть со скидкой получила бы розничную цену.
+        price = (
+            line.price
+            if line.price is not None
+            else pricing.price_for(db, nomenclature.id, payload.contract_id)
+        )
         amount = (Decimal(line.quantity) * Decimal(price)).quantize(Decimal("0.01"))
         total += amount
 

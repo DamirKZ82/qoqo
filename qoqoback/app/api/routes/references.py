@@ -11,6 +11,7 @@ from app.models import (
     Organization,
     Outlet,
     OutletType,
+    PriceType,
     ProductCategory,
     UnitOfMeasure,
     Warehouse,
@@ -132,6 +133,16 @@ router.include_router(
         tag="Справочники: торговые точки",
         search_fields=("name", "code", "address"),
         serializer=_outlet_payload,
+    )
+)
+
+router.include_router(
+    build_reference_router(
+        model=PriceType,
+        write_schema=s.PriceTypeWrite,
+        read_schema=s.PriceTypeRead,
+        prefix="/price-types",
+        tag="Справочники: типы цен",
     )
 )
 

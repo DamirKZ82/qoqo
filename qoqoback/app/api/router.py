@@ -9,6 +9,7 @@ from app.api.routes import (
     logs,
     news,
     orders,
+    prices,
     references,
     reports,
     returns,
@@ -32,6 +33,7 @@ api_router.include_router(reports.router)
 api_router.include_router(imports.router)
 api_router.include_router(field.router)
 api_router.include_router(settlements.router)
+api_router.include_router(prices.router)
 api_router.include_router(returns.router)
 api_router.include_router(stock.router)
 api_router.include_router(telegram.router)
