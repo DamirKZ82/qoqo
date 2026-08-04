@@ -86,6 +86,7 @@ def serialize_route(route: Route, *, with_stops: bool = True) -> dict[str, Any]:
                 "outlet_id": stop.outlet_id,
                 "outlet_name": stop.outlet.name if stop.outlet else "",
                 "outlet_address": stop.outlet.address if stop.outlet else None,
+                "outlet_dgis_url": stop.outlet.dgis_url if stop.outlet else None,
                 "outlet_type": (
                     stop.outlet.outlet_type.name
                     if stop.outlet and stop.outlet.outlet_type
@@ -141,6 +142,7 @@ def day_plan(
                 "outlet_id": item.outlet_id,
                 "outlet_name": item.outlet_name,
                 "outlet_address": item.outlet_address,
+                "outlet_dgis_url": item.outlet_dgis_url,
                 "outlet_type": item.outlet_type,
                 "counterparty_name": item.counterparty_name,
                 "latitude": item.latitude,

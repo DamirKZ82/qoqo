@@ -7,6 +7,8 @@ export interface FieldConfig {
   type?: 'text' | 'number' | 'checkbox' | 'date' | 'ref' | 'color' | 'url'
   /** Ресурс API для выбора значения, если type === 'ref'. */
   refResource?: string
+  /** Отбор для списка значений: например, только торговые представители. */
+  refParams?: Record<string, string>
   required?: boolean
   /** Показывать в списке. */
   inList?: boolean
@@ -140,6 +142,15 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
         label: t.fields.dgisUrl,
         type: 'url',
         helperText: t.fields.dgisUrlHint,
+      },
+      {
+        name: 'sales_rep_id',
+        label: t.fields.salesRep,
+        type: 'ref',
+        refResource: 'users',
+        refParams: { role: 'sales_rep' },
+        helperText: t.fields.salesRepHint,
+        inList: true,
       },
       { name: 'latitude', label: t.fields.latitude, type: 'number' },
       { name: 'longitude', label: t.fields.longitude, type: 'number' },

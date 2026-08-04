@@ -4,6 +4,7 @@ import DirectionsIcon from '@mui/icons-material/Directions'
 import LocationOffIcon from '@mui/icons-material/LocationOff'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
 import PlaceIcon from '@mui/icons-material/Place'
+import StorefrontIcon from '@mui/icons-material/Storefront'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 
 import Alert from '@mui/material/Alert'
@@ -46,6 +47,7 @@ interface PlanItem {
   outlet_id: string
   outlet_name: string
   outlet_address: string | null
+  outlet_dgis_url: string | null
   outlet_type: string | null
   counterparty_name: string | null
   latitude: string | null
@@ -301,6 +303,18 @@ export function RoutePage() {
                     >
                       Заявка
                     </Button>
+
+                    {item.outlet_dgis_url && (
+                      <Button
+                        size="small"
+                        startIcon={<StorefrontIcon />}
+                        href={item.outlet_dgis_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        2ГИС
+                      </Button>
+                    )}
 
                     {item.latitude && item.longitude && (
                       <Button

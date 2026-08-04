@@ -53,6 +53,7 @@ from app.schemas.report import (
 from app.services import settlements
 from app.services import stock as stock_service
 from app.services.orders import visible_orders_conditions
+from app.services.scope import is_field_user, own_outlet_ids
 
 router = APIRouter(prefix="/reports", tags=["Отчёты"])
 
@@ -158,7 +159,19 @@ ReportParams = Annotated[ReportQuery, Depends(report_query)]
 
 
 def _conditions(user: User, params: ReportQuery) -> list[ColumnElement[bool]]:
-    conditions = visible_orders_conditions(user)
+    if is_field_user(user):
+        # В отчётах у представителя граница проходит по точкам, а не по
+        # авторству: продажи его точки — его показатель, даже если заявку
+        # оформил кто-то другой. Общее правило видимости заявок здесь не
+        # годится — оно оставляет только собственные заявки и сузило бы отчёт
+        # обратно. Свои заявки добавлены на случай точки, которую ему ещё не
+        # закрепили: иначе его собственная работа пропала бы из его отчёта.
+        conditions: list[ColumnElement[bool]] = [
+            Order.outlet_id.in_(own_outlet_ids(user.id)) | (Order.author_id == user.id)
+        ]
+    else:
+        conditions = visible_orders_conditions(user)
+
     conditions.append(Order.status.in_(COUNTED_STATUSES))
     conditions.append(func.date(Order.order_date) >= params.date_from)
     conditions.append(func.date(Order.order_date) <= params.date_to)

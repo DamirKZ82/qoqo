@@ -1,12 +1,16 @@
 import uuid
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.mixins import ReferenceMixin
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Organization(ReferenceMixin, Base):
@@ -162,6 +166,7 @@ class Outlet(ReferenceMixin, Base):
 
     counterparty: Mapped["Counterparty"] = relationship(back_populates="outlets", lazy="joined")
     outlet_type: Mapped["OutletType | None"] = relationship(lazy="joined")
+    sales_rep: Mapped["User | None"] = relationship(lazy="joined")
 
 
 class Contract(ReferenceMixin, Base):

@@ -21,6 +21,8 @@ class RouteStopRead(ORMModel):
     outlet_id: uuid.UUID
     outlet_name: str
     outlet_address: str | None
+    # Профиль точки в 2ГИС: часы работы и проезд.
+    outlet_dgis_url: str | None
     outlet_type: str | None
     sort_order: int
     weekdays: list[int]
@@ -94,6 +96,8 @@ class PlanItemRead(BaseModel):
     outlet_id: uuid.UUID
     outlet_name: str
     outlet_address: str | None
+    # Профиль точки в 2ГИС: часы работы и проезд.
+    outlet_dgis_url: str | None
     outlet_type: str | None
     counterparty_name: str | None
     latitude: Decimal | None

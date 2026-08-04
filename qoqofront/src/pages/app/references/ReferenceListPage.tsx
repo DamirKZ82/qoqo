@@ -1,6 +1,7 @@
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
+import StorefrontIcon from '@mui/icons-material/Storefront'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -47,7 +48,10 @@ function RefSelect({
   onChange: (value: string) => void
 }) {
   const t = useT()
-  const { data } = useReference<ReferenceItem>(field.refResource!, { limit: 300 })
+  const { data } = useReference<ReferenceItem>(field.refResource!, {
+    limit: 300,
+    ...field.refParams,
+  })
   return (
     <TextField
       select
@@ -109,6 +113,9 @@ export function ReferenceListPage() {
 
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<ReferenceItem | null>(null)
+  // Кто не может править, тот всё равно должен видеть карточку целиком:
+  // торговому нужны адрес, телефон и ссылка на 2ГИС, а не право на запись.
+  const [viewing, setViewing] = useState<ReferenceItem | null>(null)
   const [values, setValues] = useState<Record<string, unknown>>({})
   const [error, setError] = useState<string | null>(null)
 
@@ -220,13 +227,26 @@ export function ReferenceListPage() {
               </TableHead>
               <TableBody>
                 {data.items.map((item) => (
-                  <TableRow key={item.id} hover>
+                  <TableRow
+                    key={item.id}
+                    hover
+                    onClick={() => (canEdit ? openDialog(item) : setViewing(item))}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     {listFields.map((field) => (
                       <TableCell key={field.name}>{renderCell(item, field, t)}</TableCell>
                     ))}
                     {canEdit && (
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        <IconButton size="small" onClick={() => openDialog(item)} aria-label={t.common.edit}>
+                        <IconButton
+                          size="small"
+                          onClick={(event) => {
+                            // Иначе сработает и нажатие на строку.
+                            event.stopPropagation()
+                            openDialog(item)
+                          }}
+                          aria-label={t.common.edit}
+                        >
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -250,6 +270,39 @@ export function ReferenceListPage() {
           </Typography>
         </Card>
       )}
+
+      <Dialog open={Boolean(viewing)} onClose={() => setViewing(null)} fullWidth maxWidth="sm">
+        <DialogTitle>{viewing?.name ?? config.singular}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            {viewing &&
+              config.fields
+                .filter((field) => viewing[field.name] !== null && viewing[field.name] !== '')
+                .map((field) => (
+                  <Box key={field.name}>
+                    <Typography variant="caption" color="text.secondary">
+                      {field.label}
+                    </Typography>
+                    <Typography component="div">{renderCell(viewing, field, t)}</Typography>
+                  </Box>
+                ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {viewing?.dgis_url ? (
+            <Button
+              startIcon={<StorefrontIcon />}
+              href={String(viewing.dgis_url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ mr: 'auto' }}
+            >
+              {t.references.openInDgis}
+            </Button>
+          ) : null}
+          <Button onClick={() => setViewing(null)}>{t.common.close}</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} fullWidth maxWidth="sm">
         <DialogTitle>

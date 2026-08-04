@@ -58,6 +58,7 @@ class PlanItem:
     outlet_id: uuid.UUID
     outlet_name: str
     outlet_address: str | None
+    outlet_dgis_url: str | None
     outlet_type: str | None
     counterparty_name: str | None
     latitude: Decimal | None
@@ -122,6 +123,7 @@ def plan_for_day(db: Session, sales_rep_id: uuid.UUID, day: date) -> list[PlanIt
                 outlet_id=outlet.id,
                 outlet_name=outlet.name,
                 outlet_address=outlet.address,
+                outlet_dgis_url=outlet.dgis_url,
                 outlet_type=outlet.outlet_type.name if outlet.outlet_type else None,
                 counterparty_name=outlet.counterparty.name if outlet.counterparty else None,
                 latitude=outlet.latitude,
@@ -143,6 +145,7 @@ def plan_for_day(db: Session, sales_rep_id: uuid.UUID, day: date) -> list[PlanIt
                 outlet_id=outlet.id,
                 outlet_name=outlet.name,
                 outlet_address=outlet.address,
+                outlet_dgis_url=outlet.dgis_url,
                 outlet_type=outlet.outlet_type.name if outlet.outlet_type else None,
                 counterparty_name=outlet.counterparty.name if outlet.counterparty else None,
                 latitude=outlet.latitude,

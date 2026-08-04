@@ -69,6 +69,7 @@ export interface RefParams {
   counterparty_id?: string
   outlet_type_id?: string
   category_id?: string
+  role?: string
 }
 
 export function useReference<T>(resource: string, params: RefParams = {}, enabled = true) {

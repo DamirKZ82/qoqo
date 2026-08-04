@@ -17,6 +17,7 @@ from app.models import (
     Warehouse,
 )
 from app.schemas import references as s
+from app.services.scope import outlet_conditions
 
 
 def _columns(obj: Any) -> dict[str, Any]:
@@ -35,6 +36,7 @@ def _outlet_payload(obj: Outlet) -> dict[str, Any]:
     data["counterparty_name"] = obj.counterparty.name if obj.counterparty else None
     data["outlet_type_name"] = obj.outlet_type.name if obj.outlet_type else None
     data["outlet_type_color"] = obj.outlet_type.color if obj.outlet_type else None
+    data["sales_rep_name"] = obj.sales_rep.full_name if obj.sales_rep else None
     return data
 
 
@@ -133,6 +135,7 @@ router.include_router(
         tag="Справочники: торговые точки",
         search_fields=("name", "code", "address"),
         serializer=_outlet_payload,
+        scope=outlet_conditions,
     )
 )
 

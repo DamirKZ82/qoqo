@@ -26,12 +26,17 @@ def list_users(
     _: CurrentUser,
     search: str | None = None,
     only_active: bool = True,
+    # Отбор по роли нужен там, где выбирают из сотрудников одного вида:
+    # закрепление торгового за точкой, назначение представителя на маршрут.
+    role: UserRole | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> Any:
     stmt = select(User)
     if only_active:
         stmt = stmt.where(User.is_active.is_(True))
+    if role is not None:
+        stmt = stmt.where(User.role == role)
     if search:
         pattern = f"%{search.strip()}%"
         stmt = stmt.where(or_(User.full_name.ilike(pattern), User.email.ilike(pattern)))

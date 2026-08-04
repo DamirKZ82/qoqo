@@ -128,13 +128,31 @@ function navItems(t: Dictionary): NavItem[] {
       group: 'work',
       roles: ['admin', 'director', 'accountant', 'warehouse'],
     },
+    // Торговому точки нужны — там адрес, телефон и ссылка на 2ГИС, — но
+    // остальные справочники это работа офиса, и в его меню им не место.
+    // Поэтому один и тот же экран стоит в разных группах: у торгового это
+    // «Мои точки» в работе, у остальных — справочник.
+    {
+      to: '/app/refs/outlets',
+      label: t.nav.myOutlets,
+      icon: <StorefrontIcon />,
+      group: 'work',
+      roles: ['sales_rep'],
+    },
     {
       to: '/app/refs/outlets',
       label: t.nav.outlets,
       icon: <StorefrontIcon />,
       group: 'references',
+      roles: ['admin', 'director', 'accountant', 'warehouse'],
     },
-    { to: '/app/refs', label: t.nav.allReferences, icon: <ArticleIcon />, group: 'references' },
+    {
+      to: '/app/refs',
+      label: t.nav.allReferences,
+      icon: <ArticleIcon />,
+      group: 'references',
+      roles: ['admin', 'director', 'accountant', 'warehouse'],
+    },
 
     {
       to: '/app/users',

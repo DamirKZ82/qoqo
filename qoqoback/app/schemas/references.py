@@ -208,6 +208,7 @@ class OutletRead(ReferenceRead):
     latitude: Decimal | None
     longitude: Decimal | None
     sales_rep_id: uuid.UUID | None
+    sales_rep_name: str | None = None
 
 
 # --- Договор -------------------------------------------------------------

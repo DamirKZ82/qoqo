@@ -23,6 +23,9 @@ def build_reference_router(
     tag: str,
     search_fields: tuple[str, ...] = ("name", "code"),
     serializer: Callable[[Any], dict[str, Any]] | None = None,
+    # Отбор по сотруднику: торговый представитель видит только свои точки.
+    # Живёт на сервере, а не в меню: адрес запроса легко подобрать.
+    scope: Callable[[Any], list[Any]] | None = None,
 ) -> APIRouter:
     """Собирает стандартный CRUD-роутер для справочника.
 
@@ -47,7 +50,7 @@ def build_reference_router(
     @router.get("", response_model=Page[read_schema])
     def list_items(
         db: DbSession,
-        _: CurrentUser,
+        user: CurrentUser,
         search: str | None = None,
         only_active: bool = True,
         # Универсальные фильтры по владельцу — применяются, если у модели есть
@@ -64,6 +67,8 @@ def build_reference_router(
         stmt = select(model)
         if only_active:
             stmt = stmt.where(model.is_active.is_(True))
+        for condition in scope(user) if scope else []:
+            stmt = stmt.where(condition)
 
         owner_filters = {
             "counterparty_id": counterparty_id,
@@ -92,8 +97,21 @@ def build_reference_router(
         return Page(items=[to_read(row) for row in rows], total=total, limit=limit, offset=offset)
 
     @router.get("/{item_id}", response_model=read_schema)
-    def get_item(item_id: uuid.UUID, db: DbSession, _: CurrentUser) -> Any:
-        return to_read(get_or_404(db, item_id))
+    def get_item(item_id: uuid.UUID, db: DbSession, user: CurrentUser) -> Any:
+        obj = get_or_404(db, item_id)
+
+        if scope:
+            # Чужой элемент по прямой ссылке — тоже «не найден»: сообщать, что
+            # он существует, но закрыт, значит выдавать лишнее.
+            allowed = db.execute(
+                select(model.id).where(model.id == item_id).where(*scope(user))
+            ).first()
+            if allowed is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Элемент не найден"
+                )
+
+        return to_read(obj)
 
     @router.post("", response_model=read_schema, status_code=status.HTTP_201_CREATED)
     def create_item(payload: write_schema, db: DbSession, _: Any = editor) -> Any:
