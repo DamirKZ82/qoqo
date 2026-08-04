@@ -240,7 +240,20 @@ def create_order(payload: OrderWrite, db: DbSession, user: CurrentUser) -> Any:
             detail="Склад не оформляет заявки",
         )
 
+    # Повторная отправка той же заявки возвращает уже созданную, а не дубль:
+    # клиент мог не получить ответ из-за обрыва связи и повторить запрос.
+    if payload.id is not None:
+        existing = db.get(Order, payload.id)
+        if existing is not None:
+            if existing.author_id != user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Заявка с таким идентификатором принадлежит другому сотруднику",
+                )
+            return serialize_order(existing)
+
     order = Order(
+        id=payload.id or uuid.uuid4(),
         counterparty_id=payload.counterparty_id,
         outlet_id=payload.outlet_id,
         contract_id=payload.contract_id,

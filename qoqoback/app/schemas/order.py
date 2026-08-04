@@ -30,6 +30,9 @@ class OrderLineRead(ORMModel):
 
 
 class OrderWrite(BaseModel):
+    # Идентификатор задаёт клиент — это ключ идемпотентности. Заявка,
+    # отправленная повторно после обрыва связи, не создаст дубль.
+    id: uuid.UUID | None = None
     counterparty_id: uuid.UUID
     outlet_id: uuid.UUID | None = None
     contract_id: uuid.UUID | None = None

@@ -43,6 +43,7 @@ import type { UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useT, type Dictionary } from '../i18n'
 import { Logo } from './Logo'
+import { OfflineBar } from './OfflineBar'
 import { TelegramLink } from './TelegramLink'
 import { LanguageSwitch, ThemeToggle } from './Preferences'
 
@@ -306,6 +307,8 @@ export function AppLayout() {
             </Toolbar>
           </AppBar>
         )}
+
+        <OfflineBar />
 
         <Box
           component="main"

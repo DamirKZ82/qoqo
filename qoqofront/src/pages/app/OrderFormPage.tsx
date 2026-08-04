@@ -26,6 +26,7 @@ import {
 import type { Nomenclature, Outlet, ReferenceItem } from '../../api/types'
 import { useT } from '../../i18n'
 import { formatMoney } from '../../lib/format'
+import { useOffline } from '../../offline/OfflineContext'
 
 interface LineDraft {
   key: string
@@ -47,6 +48,7 @@ export function OrderFormPage() {
 
   const { data: existing } = useOrder(id)
   const saveOrder = useSaveOrder()
+  const { online, queueOrder } = useOffline()
   const changeStatus = useChangeOrderStatus()
 
   const [counterparty, setCounterparty] = useState<ReferenceItem | null>(null)
@@ -175,6 +177,19 @@ export function OrderFormPage() {
     }
 
     try {
+      // Без связи заявка уходит в очередь на устройстве. Идентификатор
+      // генерируем здесь же: по нему сервер узнает повтор и не создаст дубль,
+      // если ответ на отправку потеряется.
+      if (!online && !isEdit) {
+        await queueOrder({
+          id: crypto.randomUUID(),
+          payload: buildPayload(),
+          submit: sendToWarehouse,
+        })
+        navigate('/app/orders')
+        return
+      }
+
       const saved = await saveOrder.mutateAsync({ id, values: buildPayload() })
       if (sendToWarehouse && saved.status === 'draft') {
         await changeStatus.mutateAsync({ id: saved.id, status: 'new' })

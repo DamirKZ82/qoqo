@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { LanguageProvider } from './i18n'
+import { OfflineProvider } from './offline/OfflineContext'
 import { installGlobalErrorReporting } from './lib/errorReporter'
 import { queryClient } from './lib/queryClient'
 import { router } from './router'
@@ -26,7 +27,9 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <LanguageProvider>
-              <RouterProvider router={router} />
+              <OfflineProvider>
+                <RouterProvider router={router} />
+              </OfflineProvider>
             </LanguageProvider>
           </AuthProvider>
         </QueryClientProvider>
