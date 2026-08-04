@@ -54,7 +54,12 @@ jobs:
       - name: Точка входа Vercel
         env:
           VERCEL: '1'
+          # Пути, по которым каталог не создать: так на бегущем CI
+          # воспроизводится файловая система только для чтения. Настройка логов
+          # и раздача загрузок выполняются при импорте модуля, поэтому
+          # необработанная ошибка там роняет приложение целиком.
           MEDIA_ROOT: /dev/null/media
+          LOG_FILE: /dev/null/logs/qoqo.log
         run: |
           python - <<'PY'
           import importlib.util
@@ -65,7 +70,12 @@ jobs:
 
           from app.db.session import engine
 
+          import logging
+
           assert module.app.title, 'приложение не собралось'
+          assert not any(
+              isinstance(h, logging.FileHandler) for h in logging.getLogger().handlers
+          ), 'журнал не должен писаться в файл там, где файловая система только для чтения'
           assert type(engine.pool).__name__ == 'NullPool', 'пул соединений не отключён'
           assert not any(getattr(r, 'path', '') == '/media' for r in module.app.routes), (
               'раздача /media не должна подключаться без записываемого каталога'

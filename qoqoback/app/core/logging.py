@@ -43,18 +43,29 @@ def configure_logging() -> None:
     root.addHandler(console)
 
     if settings.log_file:
-        path = Path(settings.log_file)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.handlers.RotatingFileHandler(
-            path,
-            maxBytes=settings.log_max_bytes,
-            backupCount=settings.log_backup_count,
-            encoding="utf-8",
-        )
-        file_handler.setFormatter(formatter)
-        file_handler.addFilter(request_filter)
-        file_handler._qoqo = True  # type: ignore[attr-defined]
-        root.addHandler(file_handler)
+        try:
+            path = Path(settings.log_file)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            file_handler = logging.handlers.RotatingFileHandler(
+                path,
+                maxBytes=settings.log_max_bytes,
+                backupCount=settings.log_backup_count,
+                encoding="utf-8",
+            )
+        except OSError:
+            # На serverless файловая система только для чтения, и создать
+            # каталог для логов нельзя. Это не повод не запуститься: вывод в
+            # консоль там и так собирает платформа. Настройка логов происходит
+            # при импорте модуля, поэтому необработанная ошибка здесь роняет
+            # приложение целиком, ещё до первого запроса.
+            root.warning(
+                "Не удалось открыть файл журнала %s — пишу только в консоль", settings.log_file
+            )
+        else:
+            file_handler.setFormatter(formatter)
+            file_handler.addFilter(request_filter)
+            file_handler._qoqo = True  # type: ignore[attr-defined]
+            root.addHandler(file_handler)
 
     # SQL-запросы шумят даже в отладке — оставляем предупреждения и выше.
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
