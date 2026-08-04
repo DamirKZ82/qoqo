@@ -101,6 +101,7 @@ export const ru = {
   },
 
   nav: {
+    routes: 'Маршруты',
     route: 'Мой маршрут',
     settlements: 'Взаиморасчёты',
     stock: 'Остатки',

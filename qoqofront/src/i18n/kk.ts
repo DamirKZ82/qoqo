@@ -83,6 +83,7 @@ export const kk: Dictionary = {
   },
 
   nav: {
+    routes: 'Бағдарлар',
     route: 'Менің бағдарым',
     settlements: 'Өзара есеп-қисап',
     stock: 'Қалдықтар',

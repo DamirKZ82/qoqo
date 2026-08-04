@@ -93,7 +93,16 @@ function navItems(t: Dictionary): NavItem[] {
       label: t.nav.route,
       icon: <RouteIcon />,
       group: 'work',
+      // Складу маршрут не нужен, а руководителям он полезен для проверки.
+      roles: ['admin', 'director', 'sales_rep'],
       mobile: true,
+    },
+    {
+      to: '/app/routes',
+      label: t.nav.routes,
+      icon: <RouteIcon />,
+      group: 'work',
+      roles: ['admin', 'director', 'accountant'],
     },
     {
       to: '/app/settlements',
