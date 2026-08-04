@@ -7,6 +7,9 @@ psycopg[binary]>=3.2
 alembic>=1.14
 pyjwt>=2.10
 bcrypt>=4.2
+# Чтение файлов Excel при импорте справочников
+openpyxl>=3.1
+
 # Клиент для вызовов Telegram Bot API
 httpx>=0.28
 python-multipart>=0.0.20

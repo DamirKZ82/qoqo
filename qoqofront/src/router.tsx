@@ -8,6 +8,7 @@ import { OrderDetailPage } from './pages/app/OrderDetailPage'
 import { OrderFormPage } from './pages/app/OrderFormPage'
 import { OrdersPage } from './pages/app/OrdersPage'
 import { ReportsPage } from './pages/app/ReportsPage'
+import { ImportPage } from './pages/app/ImportPage'
 import { LogsPage } from './pages/app/LogsPage'
 import { RoutePage } from './pages/app/RoutePage'
 import { RoutesAdminPage } from './pages/app/RoutesAdminPage'
@@ -119,6 +120,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={['admin', 'director', 'accountant']}>
             <ContentPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'import',
+        element: (
+          <ProtectedRoute roles={['admin', 'director', 'accountant']}>
+            <ImportPage />
           </ProtectedRoute>
         ),
       },
