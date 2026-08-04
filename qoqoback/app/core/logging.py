@@ -58,3 +58,9 @@ def configure_logging() -> None:
 
     # SQL-запросы шумят даже в отладке — оставляем предупреждения и выше.
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
+    # httpx пишет в лог полный адрес запроса, а у Telegram токен лежит прямо
+    # в адресе: /bot<токен>/getUpdates. На уровне INFO токен попал бы в файл
+    # лога, а лог уходит и в архив, и в систему сбора — это утечка доступа
+    # к боту. Предупреждения и ошибки оставляем: они нужны для разбора.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
