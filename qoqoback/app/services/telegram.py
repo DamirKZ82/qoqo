@@ -190,3 +190,45 @@ def unlink(db: Session, user: User) -> None:
 def build_deep_link(code: str) -> str | None:
     username = get_bot_username()
     return f"https://t.me/{username}?start={code}" if username else None
+
+
+# --- Вебхук ---------------------------------------------------------------
+
+# Telegram принимает в секрете только эти знаки, длиной от 1 до 256.
+WEBHOOK_SECRET_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+
+
+def generate_webhook_secret(length: int = 48) -> str:
+    return "".join(secrets.choice(WEBHOOK_SECRET_ALPHABET) for _ in range(length))
+
+
+def set_webhook(url: str, secret: str) -> bool:
+    """Просит Telegram слать обновления на наш адрес.
+
+    Секрет передаётся отдельно от адреса: Telegram будет присылать его
+    заголовком X-Telegram-Bot-Api-Secret-Token, и в журналы веб-сервера
+    попадёт только адрес, по которому без секрета ничего не сделать.
+    """
+
+    result = call(
+        "setWebhook",
+        {
+            "url": url,
+            "secret_token": secret,
+            "allowed_updates": ["message"],
+            # Копившиеся, пока вебхука не было, обновления не нужны: это
+            # старые команды, отвечать на которые уже поздно.
+            "drop_pending_updates": True,
+        },
+    )
+    return result is True
+
+
+def delete_webhook() -> bool:
+    """Снимает вебхук — без этого опрос работать не будет."""
+
+    return call("deleteWebhook", {"drop_pending_updates": True}) is True
+
+
+def webhook_info() -> dict[str, Any] | None:
+    return call("getWebhookInfo")

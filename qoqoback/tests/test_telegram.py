@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 
 from app.services import telegram
@@ -125,3 +126,69 @@ def test_expired_code_is_rejected() -> None:
             return FakeResult()
 
     assert telegram.redeem_link_code(FakeSession(), "code", 1, None) is None
+
+
+# --- Вебхук ---------------------------------------------------------------
+
+
+async def _post_webhook(secret: str | None) -> httpx.Response:
+    from app.main import app
+
+    headers = {} if secret is None else {"X-Telegram-Bot-Api-Secret-Token": secret}
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        return await client.post(
+            "/api/v1/telegram/webhook",
+            json={"update_id": 1, "message": {"chat": {"id": 1}, "text": "привет"}},
+            headers=headers,
+        )
+
+
+@pytest.fixture
+def webhook_secret(monkeypatch: pytest.MonkeyPatch) -> str:
+    """Подставляет секрет в настройки, не трогая .env."""
+
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "tg_webhook_secret", "s3cret-value", raising=False)
+    return "s3cret-value"
+
+
+async def test_webhook_rejects_wrong_secret(webhook_secret: str) -> None:
+    # Подделать вызов, зная только адрес, не должно получаться.
+    response = await _post_webhook("wrong-secret")
+    assert response.status_code == 404
+
+
+async def test_webhook_rejects_missing_secret(webhook_secret: str) -> None:
+    response = await _post_webhook(None)
+    assert response.status_code == 404
+
+
+async def test_webhook_rejects_everything_when_secret_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Без настроенного секрета вебхук закрыт, а не открыт всем."""
+
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "tg_webhook_secret", "", raising=False)
+    assert (await _post_webhook("")).status_code == 404
+    assert (await _post_webhook(None)).status_code == 404
+
+
+async def test_webhook_accepts_correct_secret(
+    webhook_secret: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[dict] = []
+    monkeypatch.setattr(
+        "app.services.telegram_updates.handle_update",
+        lambda db, update: seen.append(update),
+    )
+
+    response = await _post_webhook(webhook_secret)
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert len(seen) == 1

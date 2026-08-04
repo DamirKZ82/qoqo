@@ -1,7 +1,8 @@
+import secrets
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 
 from app.core.config import get_settings
@@ -77,17 +78,29 @@ def remove_link(db: DbSession, user: CurrentUser) -> TelegramStatus:
     return _status(user)
 
 
-@router.post("/webhook/{secret}", include_in_schema=False)
-def webhook(secret: str, update: dict[str, Any], db: DbSession) -> dict[str, str]:
+@router.post("/webhook", include_in_schema=False)
+def webhook(
+    update: dict[str, Any],
+    db: DbSession,
+    x_telegram_bot_api_secret_token: Annotated[str | None, Header()] = None,
+) -> dict[str, str]:
     """Приём обновлений от Telegram в боевом контуре.
 
-    Секрет в адресе — от посторонних вызовов: адрес знает только Telegram,
-    которому мы его сообщили при setWebhook. В разработке вместо вебхука
-    работает опрос: python -m app.scripts.telegram_bot
+    Секрет приходит заголовком, а не в адресе: адреса запросов пишут в свои
+    журналы и nginx, и облачные балансировщики, а заголовок туда не попадает.
+    Адрес известен всем, но без секрета по нему ничего не сделать.
+
+    В разработке вместо вебхука работает опрос:
+    python -m app.scripts.telegram_bot
     """
 
     settings = get_settings()
-    if not settings.tg_token or secret != settings.tg_token.split(":")[-1]:
+    expected = settings.tg_webhook_secret
+
+    # Сравнение постоянного времени: обычное «==» останавливается на первом
+    # несовпавшем знаке, и по времени ответа секрет подбирается посимвольно.
+    if not expected or not secrets.compare_digest(x_telegram_bot_api_secret_token or "", expected):
+        # 404, а не 403: чужому знать, что здесь что-то есть, незачем.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Не найдено")
 
     from app.services.telegram_updates import handle_update
