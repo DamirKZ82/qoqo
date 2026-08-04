@@ -461,7 +461,7 @@ export const ru = {
     isLegalEntity: 'Юридическое лицо',
     contactPerson: 'Контактное лицо',
     dgisUrl: 'Ссылка на 2ГИС',
-    dgisUrlHint: 'Профиль организации в 2ГИС: часы работы и проезд',
+    dgisUrlHint: 'Профиль торговой точки в 2ГИС: часы работы и проезд',
     color: 'Цвет метки',
     counterparty: 'Контрагент',
     outletType: 'Тип точки',

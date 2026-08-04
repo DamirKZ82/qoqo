@@ -137,25 +137,6 @@ class CounterpartyWrite(ReferenceBase):
     phone: str | None = None
     email: str | None = None
     contact_person: str | None = None
-    dgis_url: str | None = Field(default=None, max_length=1000)
-
-    @field_validator("dgis_url")
-    @classmethod
-    def _normalize_dgis_url(cls, value: str | None) -> str | None:
-        """Дописывает схему: без неё ссылка ведёт внутрь системы, а не в 2ГИС.
-
-        Адрес из 2ГИС копируют по-разному — целиком, без «https://», иногда
-        с пробелами по краям. Чинить это руками пользователь не должен.
-        """
-
-        if value is None:
-            return None
-        value = value.strip()
-        if not value:
-            return None
-        if not value.startswith(("http://", "https://")):
-            value = f"https://{value}"
-        return value
 
 
 class CounterpartyRead(ReferenceRead):
@@ -166,7 +147,6 @@ class CounterpartyRead(ReferenceRead):
     phone: str | None
     email: str | None
     contact_person: str | None
-    dgis_url: str | None
 
 
 # --- Тип торговой точки --------------------------------------------------
@@ -194,6 +174,25 @@ class OutletWrite(ReferenceBase):
     latitude: Decimal | None = None
     longitude: Decimal | None = None
     sales_rep_id: uuid.UUID | None = None
+    dgis_url: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("dgis_url")
+    @classmethod
+    def _normalize_dgis_url(cls, value: str | None) -> str | None:
+        """Дописывает схему: без неё ссылка ведёт внутрь системы, а не в 2ГИС.
+
+        Адрес из 2ГИС копируют по-разному — целиком, без «https://», иногда
+        с пробелами по краям. Чинить это руками пользователь не должен.
+        """
+
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            return None
+        if not value.startswith(("http://", "https://")):
+            value = f"https://{value}"
+        return value
 
 
 class OutletRead(ReferenceRead):
@@ -205,6 +204,7 @@ class OutletRead(ReferenceRead):
     address: str | None
     phone: str | None
     contact_person: str | None
+    dgis_url: str | None
     latitude: Decimal | None
     longitude: Decimal | None
     sales_rep_id: uuid.UUID | None

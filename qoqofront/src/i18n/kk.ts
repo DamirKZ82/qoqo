@@ -447,7 +447,7 @@ export const kk: Dictionary = {
     isLegalEntity: 'Заңды тұлға',
     contactPerson: 'Байланыс тұлғасы',
     dgisUrl: '2ГИС сілтемесі',
-    dgisUrlHint: '2ГИС-тегі ұйым парақшасы: жұмыс уақыты мен жол',
+    dgisUrlHint: '2ГИС-тегі сауда нүктесінің парақшасы: жұмыс уақыты мен жол',
     color: 'Белгі түсі',
     counterparty: 'Контрагент',
     outletType: 'Нүкте түрі',

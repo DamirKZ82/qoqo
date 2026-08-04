@@ -110,12 +110,6 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
       { name: 'phone', label: t.fields.phone, inList: true },
       { name: 'email', label: t.fields.email },
       { name: 'contact_person', label: t.fields.contactPerson },
-      {
-        name: 'dgis_url',
-        label: t.fields.dgisUrl,
-        type: 'url',
-        helperText: t.fields.dgisUrlHint,
-      },
     ],
   },
   {
@@ -141,6 +135,12 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
       { name: 'address', label: t.fields.address, inList: true },
       { name: 'phone', label: t.fields.phone },
       { name: 'contact_person', label: t.fields.contactPerson },
+      {
+        name: 'dgis_url',
+        label: t.fields.dgisUrl,
+        type: 'url',
+        helperText: t.fields.dgisUrlHint,
+      },
       { name: 'latitude', label: t.fields.latitude, type: 'number' },
       { name: 'longitude', label: t.fields.longitude, type: 'number' },
     ],

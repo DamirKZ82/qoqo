@@ -115,9 +115,6 @@ class Counterparty(ReferenceMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(50))
     email: Mapped[str | None] = mapped_column(String(200))
     contact_person: Mapped[str | None] = mapped_column(String(200))
-    # Ссылка на профиль в 2ГИС: по ней торговый представитель сразу видит
-    # часы работы и проезд, не переспрашивая точку.
-    dgis_url: Mapped[str | None] = mapped_column(String(1000))
 
     contracts: Mapped[list["Contract"]] = relationship(back_populates="counterparty")
     outlets: Mapped[list["Outlet"]] = relationship(back_populates="counterparty")
@@ -151,6 +148,10 @@ class Outlet(ReferenceMixin, Base):
     address: Mapped[str | None] = mapped_column(String(1000))
     phone: Mapped[str | None] = mapped_column(String(50))
     contact_person: Mapped[str | None] = mapped_column(String(200))
+    # Ссылка на профиль в 2ГИС: по ней торговый представитель сразу видит
+    # часы работы и проезд, не переспрашивая точку. Именно у точки, а не у
+    # контрагента: у сети адресов много, и профиль в 2ГИС у каждого свой.
+    dgis_url: Mapped[str | None] = mapped_column(String(1000))
     # Координаты — для маршрутов торговых представителей.
     latitude: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
     longitude: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
