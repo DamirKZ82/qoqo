@@ -747,7 +747,7 @@ export function ReportsPage() {
           )}
         </CardContent>
       </Card>
-      <TopSales filters={filters} dimension={dimension} onDimensionChange={setDimension} />
+      <TopSales filters={filters} />
 
       <TurnoverTable filters={filters} />
 

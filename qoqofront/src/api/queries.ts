@@ -14,6 +14,7 @@ import type {
   PeriodGroup,
   ReportDimension,
   SalesReport,
+  TopOrder,
   TopReport,
   TurnoverReport,
 } from './types'
@@ -173,11 +174,20 @@ export function useBreakdown(filters: ReportFilters, dimension: ReportDimension,
   })
 }
 
-export function useTopReport(filters: ReportFilters, dimension: ReportDimension, limit = 10) {
+export function useTopReport(
+  filters: ReportFilters,
+  dimension: ReportDimension,
+  limit = 10,
+  orderBy: TopOrder = 'amount',
+) {
   return useQuery({
-    queryKey: ['reports', 'top', filters, dimension, limit],
+    queryKey: ['reports', 'top', filters, dimension, limit, orderBy],
     queryFn: async () =>
-      (await api.get<TopReport>('/reports/top', { params: { ...filters, dimension, limit } })).data,
+      (
+        await api.get<TopReport>('/reports/top', {
+          params: { ...filters, dimension, limit, order_by: orderBy },
+        })
+      ).data,
     placeholderData: (previous) => previous,
   })
 }

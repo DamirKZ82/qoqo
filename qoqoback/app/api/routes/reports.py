@@ -44,6 +44,7 @@ from app.schemas.report import (
     SalesReport,
     StockTurnoverReport,
     StockTurnoverRow,
+    TopOrder,
     TopReport,
     TopRow,
     TurnoverReport,
@@ -383,6 +384,7 @@ def _breakdown_rows(
     dimension: Dimension,
     limit: int | None,
     line_conditions: list[ColumnElement[bool]] | None = None,
+    order: TopOrder = TopOrder.AMOUNT,
 ) -> tuple[list[BreakdownRow], Decimal, Decimal]:
     """Строки разреза, общая сумма по всем группам и сумма показанных строк."""
 
@@ -407,7 +409,9 @@ def _breakdown_rows(
     stmt = (
         stmt.where(*conditions, *(line_conditions or []))
         .group_by(key, name)
-        .order_by(amount.desc())
+        # Доли и «хвост» ниже всегда считаются от денег: доля в килограммах
+        # смешивала бы штуки с килограммами и складывала несравнимое.
+        .order_by(quantity.desc() if order is TopOrder.QUANTITY else amount.desc())
     )
 
     rows = db.execute(stmt).all()
@@ -507,6 +511,7 @@ def top_report(
     params: ReportParams,
     dimension: Dimension = Dimension.NOMENCLATURE,
     limit: int = Query(default=10, ge=1, le=100),
+    order_by: TopOrder = TopOrder.AMOUNT,
 ) -> TopReport:
     """Лидеры продаж за период с приростом к предыдущему такому же периоду.
 
@@ -517,10 +522,12 @@ def top_report(
 
     line_conditions = _line_conditions(params)
     rows, total, _ = _breakdown_rows(
-        db, _conditions(user, params), dimension, limit, line_conditions
+        db, _conditions(user, params), dimension, limit, line_conditions, order_by
     )
 
     previous_params = params.previous
+    # Прошлый период берём целиком: позиция, вылетевшая из топа, всё равно
+    # должна дать базу для прироста, иначе рост посчитается от нуля.
     previous_rows, _, _ = _breakdown_rows(
         db, _conditions(user, previous_params), dimension, None, line_conditions
     )
@@ -554,6 +561,7 @@ def top_report(
         previous_to=previous_params.date_to,
         dimension=dimension,
         dimension_title=DIMENSION_TITLES[dimension],
+        order_by=order_by,
         rows=result,
     )
 

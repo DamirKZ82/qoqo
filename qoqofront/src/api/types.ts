@@ -249,8 +249,12 @@ export interface TopReport {
   previous_to: string
   dimension: ReportDimension
   dimension_title: string
+  order_by: TopOrder
   rows: TopRow[]
 }
+
+/** По какому показателю строится топ: деньги или объём. */
+export type TopOrder = 'amount' | 'quantity'
 
 export type TurnoverStatus = 'active' | 'sleeping' | 'lost' | 'no_orders'
 

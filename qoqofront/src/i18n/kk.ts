@@ -289,6 +289,8 @@ export const kk: Dictionary = {
       subtitle: 'Кезең көшбасшылары және өткен кезеңмен салыстырғандағы өсім',
       limit: 'Қанша',
       isNew: 'жаңа',
+      byAmount: 'сома бойынша',
+      byQuantity: 'көлем бойынша',
     },
     turnover: {
       title: 'Нүктелер бойынша айналым',

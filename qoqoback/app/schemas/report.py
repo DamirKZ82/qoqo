@@ -136,6 +136,18 @@ class BreakdownReport(BaseModel):
 # --- Топ продаж ----------------------------------------------------------
 
 
+class TopOrder(StrEnum):
+    """По какому показателю строить топ.
+
+    «Топ продаваемых» читают двояко: по деньгам и по объёму. Для продуктов
+    разница существенная — дорогая позиция может обгонять по выручке то, что
+    расходится тоннами.
+    """
+
+    AMOUNT = "amount"
+    QUANTITY = "quantity"
+
+
 class TopRow(BaseModel):
     """Строка топа: показатель за период и его изменение к прошлому."""
 
@@ -158,6 +170,7 @@ class TopReport(BaseModel):
     previous_to: date
     dimension: Dimension
     dimension_title: str
+    order_by: TopOrder
     rows: list[TopRow]
 
 

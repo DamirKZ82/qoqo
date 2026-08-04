@@ -11,11 +11,13 @@ import MenuItem from '@mui/material/MenuItem'
 import Skeleton from '@mui/material/Skeleton'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { useState } from 'react'
 
 import { useTopReport, type ReportFilters } from '../api/queries'
-import type { ReportDimension } from '../api/types'
+import type { ReportDimension, TopOrder } from '../api/types'
 import { useT } from '../i18n'
 import { formatMoney, formatQuantity } from '../lib/format'
 
@@ -38,20 +40,21 @@ function growthOf(change: number | null) {
   return { icon: <TrendingFlatIcon fontSize="small" />, color: 'default' as const }
 }
 
-export function TopSales({
-  filters,
-  dimension,
-  onDimensionChange,
-}: {
-  filters: ReportFilters
-  dimension: ReportDimension
-  onDimensionChange: (value: ReportDimension) => void
-}) {
+export function TopSales({ filters }: { filters: ReportFilters }) {
   const t = useT()
+  // Топ живёт своим разрезом, а не общим с таблицей ниже: чаще всего нужно
+  // видеть ходовые товары и при этом смотреть разрез по точкам.
+  const [dimension, setDimension] = useState<ReportDimension>('nomenclature')
   const [limit, setLimit] = useState(10)
-  const { data, isPending } = useTopReport(filters, dimension, limit)
+  const [orderBy, setOrderBy] = useState<TopOrder>('amount')
+  const { data, isPending } = useTopReport(filters, dimension, limit, orderBy)
 
+  // Полосу считаем по тому же показателю, по которому строится топ: иначе
+  // самая длинная полоса оказалась бы не у первой строки.
+  const valueOf = (row: { total_amount: string | number; quantity: string | number }) =>
+    Number(orderBy === 'quantity' ? row.quantity : row.total_amount)
   const leader = data?.rows[0]
+  const leaderValue = leader ? valueOf(leader) : 0
 
   return (
     <Card>
@@ -67,6 +70,16 @@ export function TopSales({
               {t.reports.top.subtitle}
             </Typography>
           </Box>
+
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={orderBy}
+            onChange={(_, value: TopOrder | null) => value && setOrderBy(value)}
+          >
+            <ToggleButton value="amount">{t.reports.top.byAmount}</ToggleButton>
+            <ToggleButton value="quantity">{t.reports.top.byQuantity}</ToggleButton>
+          </ToggleButtonGroup>
 
           <TextField
             select
@@ -88,7 +101,7 @@ export function TopSales({
             size="small"
             label={t.reports.breakdown}
             value={dimension}
-            onChange={(event) => onDimensionChange(event.target.value as ReportDimension)}
+            onChange={(event) => setDimension(event.target.value as ReportDimension)}
             sx={{ minWidth: 190 }}
           >
             {DIMENSIONS.map((item) => (
@@ -138,20 +151,25 @@ export function TopSales({
                     }
                   />
 
-                  <Typography sx={{ fontWeight: 700, minWidth: 110, textAlign: 'right' }}>
-                    {formatMoney(row.total_amount)}
-                  </Typography>
+                  <Box sx={{ minWidth: 110, textAlign: 'right' }}>
+                    <Typography sx={{ fontWeight: 700 }}>
+                      {orderBy === 'quantity'
+                        ? formatQuantity(row.quantity)
+                        : formatMoney(row.total_amount)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {orderBy === 'quantity'
+                        ? formatMoney(row.total_amount)
+                        : formatQuantity(row.quantity)}
+                    </Typography>
+                  </Box>
                 </Stack>
 
                 <LinearProgress
                   variant="determinate"
                   // Доля от лидера, а не от общей суммы: так разница между
                   // соседями в списке видна, даже когда все доли мелкие.
-                  value={
-                    leader && Number(leader.total_amount) > 0
-                      ? (Number(row.total_amount) / Number(leader.total_amount)) * 100
-                      : 0
-                  }
+                  value={leaderValue > 0 ? (valueOf(row) / leaderValue) * 100 : 0}
                   sx={{ mt: 0.75, height: 6, borderRadius: 3 }}
                 />
               </Box>
