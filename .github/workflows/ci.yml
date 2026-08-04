@@ -103,12 +103,34 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Проверке ниже нужен предыдущий коммит: без истории не понять,
+          # какие миграции добавлены именно этим изменением.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         with:
           python-version-file: qoqoback/.python-version
           cache: pip
           cache-dependency-path: qoqoback/requirements.txt
+
+      # Схема и код меняются не одновременно: во время выкатки старые процессы
+      # ещё живы. Миграция, ломающая предыдущую версию кода, должна быть
+      # осознанной, а не случайной.
+      - name: Миграции не ломают работающий код
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+          # Первый пуш в ветку или force push: сравнивать не с чем.
+          if ! git rev-parse --verify --quiet "$base^{commit}" > /dev/null; then
+            base=$(git rev-parse --verify --quiet HEAD~1 || git rev-parse HEAD)
+          fi
+          files=$(git diff --name-only "$base" HEAD -- qoqoback/alembic/versions)
+          python qoqoback/tools/check_migrations.py $files
 
       - name: Зависимости
         run: pip install -r requirements.txt

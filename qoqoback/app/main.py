@@ -11,6 +11,7 @@ from app.api.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.db.bootstrap import ensure_owner
 from app.db.migrate import run_migrations_if_enabled
 from app.db.session import engine
 
@@ -25,6 +26,8 @@ media_root = Path(settings.media_root)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     run_migrations_if_enabled()
+    # После миграций: на новой базе таблицы появляются только что.
+    ensure_owner()
     yield
     engine.dispose()
 
