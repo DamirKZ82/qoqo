@@ -53,8 +53,11 @@ export function TopSales({ filters }: { filters: ReportFilters }) {
   // самая длинная полоса оказалась бы не у первой строки.
   const valueOf = (row: { total_amount: string | number; quantity: string | number }) =>
     Number(orderBy === 'quantity' ? row.quantity : row.total_amount)
-  const leader = data?.rows[0]
-  const leaderValue = leader ? valueOf(leader) : 0
+
+  // Берём наибольшее по строкам, а не первую строку: пока грузятся новые
+  // цифры, на экране лежат прежние — отсортированные по прежнему показателю,
+  // и первая строка уже не максимум. Иначе полоса уезжает за 100 %.
+  const leaderValue = Math.max(0, ...(data?.rows ?? []).map(valueOf))
 
   return (
     <Card>
