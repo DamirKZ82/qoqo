@@ -11,7 +11,10 @@ on:
 # коммите смысла нет.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # На ветках новый пуш отменяет прежний прогон — гонять проверки на устаревшем
+  # коммите смысла нет. На main отмену выключаем: там в конце идёт миграция
+  # боевой базы, и обрывать её на середине нельзя.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -154,3 +157,82 @@ jobs:
       # русским по составу ключей, иначе tsc не пройдёт.
       - name: Сборка
         run: npm run build
+
+  deploy-migrations:
+    name: Миграции боевой базы
+    runs-on: ubuntu-latest
+    # Только после зелёных проверок и только с main: схему боевой базы не
+    # меняем по пушу в ветку и уж тем более по пулл-реквесту извне.
+    needs: [backend, migrations, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # Отдельная очередь: два одновременных прогона не должны накатывать схему
+    # наперегонки. Отмену не включаем — начатую миграцию не прерываем.
+    concurrency:
+      group: prod-migrations
+      cancel-in-progress: false
+
+    # Через окружение в настройках репозитория можно потребовать подтверждение
+    # человеком перед изменением схемы: Settings → Environments → production.
+    environment: production
+
+    defaults:
+      run:
+        working-directory: qoqoback
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: qoqoback/.python-version
+          cache: pip
+          cache-dependency-path: qoqoback/requirements.txt
+
+      # Пока секрет не заведён, шаг не должен красить сборку: репозиторий
+      # существует и без боевой базы.
+      - name: Есть ли доступ к базе
+        id: guard
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if [ -z "$PROD_DATABASE_URL" ]; then
+            echo '::notice::Секрет PROD_DATABASE_URL не задан — миграции боевой базы пропущены'
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Зависимости
+        if: steps.guard.outputs.ready == 'true'
+        run: pip install -r requirements.txt
+
+      - name: На чём база сейчас
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          SECRET_KEY: not-used-for-migrations
+        run: alembic current
+
+      - name: Что будет применено
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          SECRET_KEY: not-used-for-migrations
+        # Список недостающих шагов до того, как они выполнятся: если что-то
+        # пойдёт не так, в логе останется, с чего начинали.
+        run: alembic history --rev-range current:head
+
+      - name: Накатить
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          SECRET_KEY: not-used-for-migrations
+        run: alembic upgrade head
+
+      - name: На чём база стала
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          SECRET_KEY: not-used-for-migrations
+        run: alembic current
