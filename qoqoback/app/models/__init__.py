@@ -22,6 +22,14 @@ from app.models.references import (
     UnitOfMeasure,
     Warehouse,
 )
+from app.models.route import (
+    RESULT_TITLES,
+    VISITED_RESULTS,
+    Route,
+    RouteStop,
+    Visit,
+    VisitResult,
+)
 from app.models.settings import SETTINGS_ID, AppSettings
 from app.models.stock import (
     StockDocument,
@@ -47,11 +55,13 @@ __all__ = [
     "EDITOR_ROLES",
     "FULFILMENT_ROLES",
     "METHOD_TITLES",
+    "RESULT_TITLES",
     "ROLE_TITLES",
     "SETTINGS_ID",
     "SOURCE_TITLES",
     "STATUS_TITLES",
     "STATUS_TRANSITIONS",
+    "VISITED_RESULTS",
     "AppSettings",
     "BlockType",
     "ContentBlock",
@@ -74,6 +84,8 @@ __all__ = [
     "PaymentMethod",
     "PostCategory",
     "ProductCategory",
+    "Route",
+    "RouteStop",
     "StockDocument",
     "StockDocumentLine",
     "StockDocumentStatus",
@@ -84,5 +96,7 @@ __all__ = [
     "User",
     "UserInvitation",
     "UserRole",
+    "Visit",
+    "VisitResult",
     "Warehouse",
 ]

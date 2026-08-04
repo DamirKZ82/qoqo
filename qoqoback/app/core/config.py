@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     seed_owner_email: str = "owner@qoqo.kz"
     seed_owner_password: str = "owner12345"
 
+    # Насколько далеко от точки допустима отметка о визите, в метрах.
+    # Больше — отметка попадает в отчёт как сделанная не на месте.
+    visit_max_distance_m: int = 300
+
     # Telegram-бот. Пустой tg_token — привязка в интерфейсе не предлагается.
     tg_token: str = ""
     # Имя бота для ссылки t.me/<имя>. Пусто — спросим у самого Telegram.

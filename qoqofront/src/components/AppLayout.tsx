@@ -12,6 +12,7 @@ import TelegramIcon from '@mui/icons-material/Telegram'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+import RouteIcon from '@mui/icons-material/Route'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 
@@ -87,6 +88,13 @@ function navItems(t: Dictionary): NavItem[] {
       roles: ['admin', 'director', 'accountant', 'sales_rep'],
     },
 
+    {
+      to: '/app/route',
+      label: t.nav.route,
+      icon: <RouteIcon />,
+      group: 'work',
+      mobile: true,
+    },
     {
       to: '/app/settlements',
       label: t.nav.settlements,
@@ -175,7 +183,10 @@ export function AppLayout() {
   const menu = (
     <Box sx={{ width: 264, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ p: 2 }}>
-        <Logo height={36} />
+        {/* Логотип ведёт на сайт: это его привычное поведение в шапке. */}
+        <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
+          <Logo height={36} />
+        </Box>
       </Box>
       <Divider />
 
@@ -274,7 +285,9 @@ export function AppLayout() {
               <IconButton edge="start" onClick={() => setDrawerOpen(true)} aria-label={t.nav.menu}>
                 <MenuIcon />
               </IconButton>
-              <Logo height={28} />
+              <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
+                <Logo height={28} />
+              </Box>
               <Box sx={{ flexGrow: 1 }} />
               <LanguageSwitch />
               <ThemeToggle />
