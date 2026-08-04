@@ -4,7 +4,7 @@ import type { Dictionary } from '../../../i18n'
 export interface FieldConfig {
   name: string
   label: string
-  type?: 'text' | 'number' | 'checkbox' | 'date' | 'ref' | 'color'
+  type?: 'text' | 'number' | 'checkbox' | 'date' | 'ref' | 'color' | 'url'
   /** Ресурс API для выбора значения, если type === 'ref'. */
   refResource?: string
   required?: boolean
@@ -110,6 +110,12 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
       { name: 'phone', label: t.fields.phone, inList: true },
       { name: 'email', label: t.fields.email },
       { name: 'contact_person', label: t.fields.contactPerson },
+      {
+        name: 'dgis_url',
+        label: t.fields.dgisUrl,
+        type: 'url',
+        helperText: t.fields.dgisUrlHint,
+      },
     ],
   },
   {

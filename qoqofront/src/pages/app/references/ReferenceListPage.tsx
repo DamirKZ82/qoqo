@@ -14,6 +14,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
+import Link from '@mui/material/Link'
 import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
@@ -77,6 +78,26 @@ function displayValue(item: ReferenceItem, field: FieldConfig, t: Dictionary): s
     return item[nameKey] ? String(item[nameKey]) : t.common.dash
   }
   return String(raw)
+}
+
+/** Ячейка списка. Ссылку показываем ссылкой: её открывают, а не читают. */
+function renderCell(item: ReferenceItem, field: FieldConfig, t: Dictionary) {
+  const raw = item[field.name]
+  if (field.type === 'url' && raw) {
+    return (
+      <Link
+        href={String(raw)}
+        target="_blank"
+        // noopener — иначе открытая страница получает доступ к window.opener
+        // и может подменить нашу вкладку.
+        rel="noopener noreferrer"
+        sx={{ display: 'inline-block', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}
+      >
+        {String(raw).replace(/^https?:\/\//, '')}
+      </Link>
+    )
+  }
+  return displayValue(item, field, t)
 }
 
 export function ReferenceListPage() {
@@ -201,7 +222,7 @@ export function ReferenceListPage() {
                 {data.items.map((item) => (
                   <TableRow key={item.id} hover>
                     {listFields.map((field) => (
-                      <TableCell key={field.name}>{displayValue(item, field, t)}</TableCell>
+                      <TableCell key={field.name}>{renderCell(item, field, t)}</TableCell>
                     ))}
                     {canEdit && (
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
@@ -280,7 +301,7 @@ export function ReferenceListPage() {
                 <TextField
                   key={field.name}
                   label={field.label}
-                  type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'color' ? 'color' : 'text'}
+                  type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'color' ? 'color' : field.type === 'url' ? 'url' : 'text'}
                   value={value ?? ''}
                   onChange={(event) =>
                     setValues((current) => ({ ...current, [field.name]: event.target.value }))

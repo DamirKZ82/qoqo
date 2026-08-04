@@ -460,6 +460,8 @@ export const ru = {
     barcode: 'Штрихкод',
     isLegalEntity: 'Юридическое лицо',
     contactPerson: 'Контактное лицо',
+    dgisUrl: 'Ссылка на 2ГИС',
+    dgisUrlHint: 'Профиль организации в 2ГИС: часы работы и проезд',
     color: 'Цвет метки',
     counterparty: 'Контрагент',
     outletType: 'Тип точки',
