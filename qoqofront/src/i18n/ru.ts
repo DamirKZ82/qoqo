@@ -209,6 +209,12 @@ export const ru = {
   },
 
   orders: {
+    print: 'Печать',
+    printForms: {
+      order: 'Заявка',
+      waybill: 'Накладная на отпуск',
+      invoice: 'Счёт на оплату',
+    },
     title: 'Заявки',
     create: 'Новая',
     searchPlaceholder: 'Номер заявки, например 12 или ЗК-000012',

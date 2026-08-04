@@ -17,6 +17,7 @@ import { WarehousePage } from './pages/app/WarehousePage'
 import { ReferenceListPage } from './pages/app/references/ReferenceListPage'
 import { ReferencesIndexPage } from './pages/app/references/ReferencesIndexPage'
 import { LandingPage } from './pages/public/LandingPage'
+import { PrintPage } from './pages/print/PrintPage'
 import { LoginPage } from './pages/public/LoginPage'
 import { SetPasswordPage } from './pages/public/SetPasswordPage'
 
@@ -24,6 +25,15 @@ export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/set-password', element: <SetPasswordPage /> },
+  {
+    // Печатные формы — без бокового меню и шапки: печатается документ, а не интерфейс.
+    path: '/print/:kind/:id',
+    element: (
+      <ProtectedRoute>
+        <PrintPage />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: '/app',
     element: (

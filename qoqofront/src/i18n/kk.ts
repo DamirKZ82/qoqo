@@ -191,6 +191,12 @@ export const kk: Dictionary = {
   },
 
   orders: {
+    print: 'Басып шығару',
+    printForms: {
+      order: 'Өтінім',
+      waybill: 'Тауар босату жүкқұжаты',
+      invoice: 'Төлеуге шот',
+    },
     title: 'Өтінімдер',
     create: 'Жаңа',
     searchPlaceholder: 'Өтінім нөмірі, мысалы 12 немесе ЗК-000012',

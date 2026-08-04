@@ -1,4 +1,8 @@
 import EditIcon from '@mui/icons-material/Edit'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import PrintIcon from '@mui/icons-material/Print'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -52,6 +56,8 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+const PRINT_FORMS = [{ kind: 'order' }, { kind: 'waybill' }, { kind: 'invoice' }] as const
+
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -64,6 +70,7 @@ export function OrderDetailPage() {
 
   const [shipped, setShipped] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  const [printAnchor, setPrintAnchor] = useState<HTMLElement | null>(null)
 
   // В режиме сборки поля предзаполняются заказанным количеством.
   useEffect(() => {
@@ -146,6 +153,31 @@ export function OrderDetailPage() {
             {t.common.edit}
           </Button>
         )}
+
+        <Button
+          startIcon={<PrintIcon />}
+          endIcon={<ExpandMoreIcon />}
+          onClick={(event) => setPrintAnchor(event.currentTarget)}
+        >
+          {t.orders.print}
+        </Button>
+        <Menu
+          anchorEl={printAnchor}
+          open={Boolean(printAnchor)}
+          onClose={() => setPrintAnchor(null)}
+        >
+          {PRINT_FORMS.map((form) => (
+            <MenuItem
+              key={form.kind}
+              component={RouterLink}
+              to={`/print/${form.kind}/${order.id}`}
+              target="_blank"
+              onClick={() => setPrintAnchor(null)}
+            >
+              {t.orders.printForms[form.kind]}
+            </MenuItem>
+          ))}
+        </Menu>
       </Stack>
 
       {error && <Alert severity="error">{error}</Alert>}
