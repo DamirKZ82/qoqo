@@ -235,7 +235,9 @@ export function AppLayout() {
               key={group}
               dense
               subheader={
-                <ListSubheader sx={{ bgcolor: 'transparent', lineHeight: '32px' }}>
+                // disableSticky: иначе прозрачный заголовок группы
+                // при прокрутке наезжает на пункты меню.
+                <ListSubheader disableSticky sx={{ bgcolor: 'transparent', lineHeight: '32px' }}>
                   {t.nav.groups[group]}
                 </ListSubheader>
               }

@@ -32,6 +32,7 @@ import FilterListIcon from '@mui/icons-material/FilterList'
 
 import { errorMessage } from '../../api/client'
 import { TopSales } from '../../components/TopSales'
+import { StockTurnover } from '../../components/StockTurnover'
 import { TurnoverTable } from '../../components/TurnoverTable'
 import {
   downloadBreakdownCsv,
@@ -749,6 +750,8 @@ export function ReportsPage() {
       <TopSales filters={filters} dimension={dimension} onDimensionChange={setDimension} />
 
       <TurnoverTable filters={filters} />
+
+      <StockTurnover filters={filters} />
 
     </Stack>
   )

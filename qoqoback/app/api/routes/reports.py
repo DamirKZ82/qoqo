@@ -2,7 +2,7 @@ import csv
 import io
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Annotated, Any
 
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import DbSession, require_roles
 from app.models import (
+    VISITED_RESULTS,
     Counterparty,
     Nomenclature,
     Order,
@@ -20,8 +21,10 @@ from app.models import (
     Outlet,
     OutletType,
     ProductCategory,
+    StockMovement,
     User,
     UserRole,
+    Visit,
     Warehouse,
 )
 from app.schemas.report import (
@@ -30,18 +33,25 @@ from app.schemas.report import (
     DIMENSION_TITLES,
     BreakdownReport,
     BreakdownRow,
+    DashboardAlert,
+    DashboardPeriod,
     Dimension,
+    DirectorDashboard,
     ExportLanguage,
     PeriodGroup,
     ReportTotals,
     SalesPoint,
     SalesReport,
+    StockTurnoverReport,
+    StockTurnoverRow,
     TopReport,
     TopRow,
     TurnoverReport,
     TurnoverRow,
     dimension_title,
 )
+from app.services import settlements
+from app.services import stock as stock_service
 from app.services.orders import visible_orders_conditions
 
 router = APIRouter(prefix="/reports", tags=["Отчёты"])
@@ -631,4 +641,259 @@ def turnover_report(
         date_to=params.date_to,
         rows=rows,
         sleeping_after_days=SLEEPING_AFTER_DAYS,
+    )
+
+
+# --- Оборачиваемость запасов ---------------------------------------------
+
+# Товар без движения дольше этого срока считается залежавшимся.
+STALE_AFTER_DAYS = 30
+
+
+@router.get("/stock-turnover", response_model=StockTurnoverReport)
+def stock_turnover(
+    db: DbSession,
+    user: ReportUser,
+    params: ReportParams,
+    warehouse_id: uuid.UUID | None = None,
+    only_moved: bool = True,
+) -> StockTurnoverReport:
+    """Оборачиваемость запасов: за сколько дней распродаётся средний остаток.
+
+    Средний остаток считаем как полусумму на начало и на конец периода —
+    общепринятое упрощение: считать по каждому дню дороже, а результат почти
+    тот же.
+    """
+
+    start = datetime.combine(params.date_from, time.min, tzinfo=UTC)
+    end = datetime.combine(params.date_to, time.max, tzinfo=UTC)
+
+    warehouse_key = StockMovement.warehouse_id
+    product_key = StockMovement.nomenclature_id
+
+    def grouped(*conditions: Any) -> dict[tuple[uuid.UUID, uuid.UUID], Decimal]:
+        stmt = (
+            select(warehouse_key, product_key, func.coalesce(func.sum(StockMovement.quantity), 0))
+            .group_by(warehouse_key, product_key)
+            .where(*conditions)
+        )
+        if warehouse_id is not None:
+            stmt = stmt.where(warehouse_key == warehouse_id)
+        return {(row[0], row[1]): Decimal(row[2]) for row in db.execute(stmt).all()}
+
+    opening = grouped(StockMovement.moved_at < start)
+    closing = grouped(StockMovement.moved_at <= end)
+    consumed = {
+        key: abs(value)
+        for key, value in grouped(
+            StockMovement.moved_at.between(start, end), StockMovement.quantity < 0
+        ).items()
+    }
+    received = grouped(StockMovement.moved_at.between(start, end), StockMovement.quantity > 0)
+
+    last_stmt = select(
+        warehouse_key, product_key, func.max(func.date(StockMovement.moved_at))
+    ).group_by(warehouse_key, product_key)
+    if warehouse_id is not None:
+        last_stmt = last_stmt.where(warehouse_key == warehouse_id)
+    last_moved = {(row[0], row[1]): row[2] for row in db.execute(last_stmt).all()}
+
+    keys = set(opening) | set(closing)
+    empty = StockTurnoverReport(
+        date_from=params.date_from,
+        date_to=params.date_to,
+        days=params.days,
+        rows=[],
+        stale_after_days=STALE_AFTER_DAYS,
+    )
+    if not keys:
+        return empty
+
+    warehouses = {
+        row.id: row
+        for row in db.execute(
+            select(Warehouse).where(Warehouse.id.in_({item[0] for item in keys}))
+        ).scalars()
+    }
+    products = {
+        row.id: row
+        for row in db.execute(
+            select(Nomenclature).where(Nomenclature.id.in_({item[1] for item in keys}))
+        )
+        .unique()
+        .scalars()
+    }
+
+    today = datetime.now(UTC).date()
+    rows: list[StockTurnoverRow] = []
+
+    for item in keys:
+        warehouse = warehouses.get(item[0])
+        product = products.get(item[1])
+        if warehouse is None or product is None:
+            continue
+
+        gone = consumed.get(item, Decimal(0))
+        came = received.get(item, Decimal(0))
+        if only_moved and gone == 0 and came == 0:
+            continue
+
+        open_qty = opening.get(item, Decimal(0))
+        close_qty = closing.get(item, Decimal(0))
+        average = (open_qty + close_qty) / 2
+
+        ratio = float(gone / average) if average > 0 else None
+        days_to_sell = params.days / ratio if ratio else None
+        per_day = gone / params.days if params.days else Decimal(0)
+        supply = float(close_qty / per_day) if per_day > 0 else None
+
+        moved_on = last_moved.get(item)
+        idle = (today - moved_on).days if moved_on else None
+
+        rows.append(
+            StockTurnoverRow(
+                warehouse_id=item[0],
+                warehouse_name=warehouse.name,
+                nomenclature_id=item[1],
+                nomenclature_name=product.name,
+                unit_name=product.base_unit.name if product.base_unit else None,
+                opening=open_qty,
+                closing=close_qty,
+                average=average,
+                consumed=gone,
+                received=came,
+                turnover_ratio=round(ratio, 3) if ratio else None,
+                days_to_sell=round(days_to_sell, 1) if days_to_sell else None,
+                days_of_supply=round(supply, 1) if supply else None,
+                last_movement=moved_on,
+                days_without_movement=idle,
+            )
+        )
+
+    # Сверху то, что расходится медленнее всего: именно там заморожены деньги.
+    rows.sort(key=lambda row: (row.turnover_ratio is None, row.turnover_ratio or 0))
+
+    return StockTurnoverReport(
+        date_from=params.date_from,
+        date_to=params.date_to,
+        days=params.days,
+        rows=rows,
+        stale_after_days=STALE_AFTER_DAYS,
+    )
+
+
+# --- Сводка руководителя -------------------------------------------------
+
+
+@router.get("/dashboard", response_model=DirectorDashboard)
+def director_dashboard(db: DbSession, user: ReportUser) -> DirectorDashboard:
+    """Одним экраном: продажи, долги, что зависло и как идут маршруты."""
+
+    today = datetime.now(UTC).date()
+
+    periods: list[DashboardPeriod] = []
+    for label, days in (("Сегодня", 1), ("7 дней", 7), ("30 дней", 30)):
+        current = ReportQuery(
+            date_from=today - timedelta(days=days - 1),
+            date_to=today,
+            warehouse_id=None,
+            outlet_id=None,
+            counterparty_id=None,
+            author_id=None,
+        )
+        now = _totals(db, _conditions(user, current))
+        was = _totals(db, _conditions(user, current.previous))
+        change = (
+            float((now.total_amount - was.total_amount) / was.total_amount)
+            if was.total_amount
+            else None
+        )
+        periods.append(
+            DashboardPeriod(
+                label=label,
+                orders_count=now.orders_count,
+                total_amount=now.total_amount,
+                change=change,
+            )
+        )
+
+    balances = settlements.collect(db, today=today)
+    debt = sum((item.debt for item in balances.values() if item.debt > 0), Decimal(0))
+    overdue = sum((item.overdue for item in balances.values()), Decimal(0))
+    overdue_parties = sum(1 for item in balances.values() if item.overdue > 0)
+
+    to_process = db.execute(
+        select(func.count())
+        .select_from(Order)
+        .where(Order.status.in_((OrderStatus.NEW, OrderStatus.ASSEMBLING, OrderStatus.ASSEMBLED)))
+    ).scalar_one()
+
+    quantities = stock_service.balances(db)
+    busy = stock_service.reserved(db)
+    out_of_stock = sum(
+        1 for key, value in quantities.items() if value - busy.get(key, Decimal(0)) <= 0
+    )
+
+    stale_threshold = today - timedelta(days=STALE_AFTER_DAYS)
+    stale = db.execute(
+        select(func.count()).select_from(
+            select(StockMovement.warehouse_id, StockMovement.nomenclature_id)
+            .group_by(StockMovement.warehouse_id, StockMovement.nomenclature_id)
+            .having(func.max(func.date(StockMovement.moved_at)) < stale_threshold)
+            .subquery()
+        )
+    ).scalar_one()
+
+    planned = db.execute(
+        select(func.count()).select_from(Visit).where(Visit.planned_date == today)
+    ).scalar_one()
+    done = db.execute(
+        select(func.count())
+        .select_from(Visit)
+        .where(Visit.planned_date == today)
+        .where(Visit.result.in_(VISITED_RESULTS))
+    ).scalar_one()
+
+    alerts: list[DashboardAlert] = []
+    if overdue > 0:
+        alerts.append(
+            DashboardAlert(
+                kind="overdue",
+                title="Просроченная задолженность",
+                count=overdue_parties,
+                amount=overdue,
+            )
+        )
+    if out_of_stock > 0:
+        alerts.append(
+            DashboardAlert(
+                kind="out_of_stock",
+                title="Позиций без свободного остатка",
+                count=out_of_stock,
+            )
+        )
+    if stale > 0:
+        alerts.append(
+            DashboardAlert(
+                kind="stale",
+                title=f"Без движения дольше {STALE_AFTER_DAYS} дней",
+                count=stale,
+            )
+        )
+    if planned > done:
+        alerts.append(
+            DashboardAlert(kind="visits", title="Точек не посещено сегодня", count=planned - done)
+        )
+
+    return DirectorDashboard(
+        periods=periods,
+        debt=debt,
+        overdue=overdue,
+        overdue_counterparties=overdue_parties,
+        orders_to_process=to_process,
+        out_of_stock=out_of_stock,
+        stale_items=stale,
+        visits_planned=planned,
+        visits_done=done,
+        alerts=alerts,
     )

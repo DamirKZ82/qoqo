@@ -187,3 +187,71 @@ class TurnoverReport(BaseModel):
     rows: list[TurnoverRow]
     # Порог в днях, по которому точка считается уснувшей.
     sleeping_after_days: int
+
+
+# --- Оборачиваемость запасов ---------------------------------------------
+
+
+class StockTurnoverRow(BaseModel):
+    """Как быстро расходится позиция на складе."""
+
+    warehouse_id: uuid.UUID
+    warehouse_name: str
+    nomenclature_id: uuid.UUID
+    nomenclature_name: str
+    unit_name: str | None
+    opening: Decimal
+    closing: Decimal
+    average: Decimal
+    # Сколько ушло со склада за период: отгрузки, списания, недостачи.
+    consumed: Decimal
+    received: Decimal
+    # Расход, делённый на средний остаток. None — на складе ничего не лежало.
+    turnover_ratio: float | None
+    # За сколько дней распродаётся средний запас. None — расхода не было.
+    days_to_sell: float | None
+    # На сколько дней хватит текущего остатка при том же темпе.
+    days_of_supply: float | None
+    last_movement: date | None
+    days_without_movement: int | None
+
+
+class StockTurnoverReport(BaseModel):
+    date_from: date
+    date_to: date
+    days: int
+    rows: list[StockTurnoverRow]
+    # Порог, после которого товар считается залежавшимся.
+    stale_after_days: int
+
+
+# --- Сводка руководителя -------------------------------------------------
+
+
+class DashboardPeriod(BaseModel):
+    label: str
+    orders_count: int
+    total_amount: Decimal
+    change: float | None
+
+
+class DashboardAlert(BaseModel):
+    """Что требует внимания прямо сейчас."""
+
+    kind: str
+    title: str
+    count: int
+    amount: Decimal | None = None
+
+
+class DirectorDashboard(BaseModel):
+    periods: list[DashboardPeriod]
+    debt: Decimal
+    overdue: Decimal
+    overdue_counterparties: int
+    orders_to_process: int
+    out_of_stock: int
+    stale_items: int
+    visits_planned: int
+    visits_done: int
+    alerts: list[DashboardAlert]

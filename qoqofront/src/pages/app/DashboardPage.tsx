@@ -11,6 +11,7 @@ import { Link as RouterLink } from 'react-router-dom'
 
 import { useOrderStats, useOrders } from '../../api/queries'
 import { useAuth } from '../../auth/AuthContext'
+import { DirectorSummary } from '../../components/DirectorSummary'
 import { OrderCard } from '../../components/OrderCard'
 import { useT } from '../../i18n'
 import { formatMoney } from '../../lib/format'
@@ -36,6 +37,10 @@ export function DashboardPage() {
         <Typography variant="h4">{t.dashboard.greeting(user?.full_name.split(' ')[0] ?? '')}</Typography>
         <Typography color="text.secondary">{user ? t.roles[user.role] : ''}</Typography>
       </Box>
+
+      {/* Руководителю показываем расширенную сводку: продажи, долги и то,
+          что требует внимания прямо сейчас. */}
+      {hasRole('admin', 'director') && <DirectorSummary />}
 
       <Box
         sx={{
