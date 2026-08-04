@@ -13,6 +13,7 @@ import TelegramIcon from '@mui/icons-material/Telegram'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import ViewQuiltIcon from '@mui/icons-material/ViewQuilt'
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
 import RouteIcon from '@mui/icons-material/Route'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
@@ -107,6 +108,13 @@ function navItems(t: Dictionary): NavItem[] {
       roles: ['admin', 'director', 'accountant'],
     },
     {
+      to: '/app/returns',
+      label: t.nav.returns,
+      icon: <AssignmentReturnIcon />,
+      group: 'work',
+      roles: ['admin', 'director', 'accountant', 'warehouse'],
+    },
+    {
       to: '/app/settlements',
       label: t.nav.settlements,
       icon: <AccountBalanceWalletIcon />,
@@ -189,9 +197,19 @@ export function AppLayout() {
   )
   const mobileItems = visible.filter((item) => item.mobile).slice(0, 4)
 
-  // Точное совпадение для «Сводки», иначе — по префиксу пути.
-  const isActive = (to: string) =>
-    to === '/app' ? location.pathname === '/app' : location.pathname.startsWith(to)
+  // Совпадение считаем по границе сегмента пути, а не по подстроке: иначе
+  // «/app/routes» подсвечивал бы и «/app/route».
+  const matches = (to: string) =>
+    location.pathname === to || location.pathname.startsWith(`${to}/`)
+
+  // Из нескольких подходящих пунктов активен самый длинный: на «/app/orders/new»
+  // должна гореть «Новая заявка», а не «Заявки».
+  const activePath = visible
+    .map((item) => item.to)
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0]
+
+  const isActive = (to: string) => to === activePath
 
   const activeMobile = mobileItems.findIndex((item) => isActive(item.to))
 

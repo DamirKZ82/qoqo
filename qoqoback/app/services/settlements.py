@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Contract, Order, OrderStatus
 from app.models.payment import Payment
+from app.models.returns import Return, ReturnStatus
 
 # Долг возникает по отгруженным заявкам: пока товар не уехал, платить не за что.
 CHARGING_STATUSES = (OrderStatus.SHIPPED, OrderStatus.DELIVERED)
@@ -47,13 +48,16 @@ class CounterpartyBalance:
     counterparty_id: uuid.UUID
     charged: Decimal = Decimal(0)
     paid: Decimal = Decimal(0)
+    # Возвращённый товар долг уменьшает, но это не оплата: в отчётах их надо
+    # различать, иначе не видно, сколько денег реально пришло.
+    returned: Decimal = Decimal(0)
     overdue: Decimal = Decimal(0)
     oldest_overdue_days: int = 0
     charges: list[Charge] = field(default_factory=list)
 
     @property
     def debt(self) -> Decimal:
-        return self.charged - self.paid
+        return self.charged - self.paid - self.returned
 
 
 def _due_date(order_date: date, payment_days: int) -> date:
@@ -121,6 +125,22 @@ def collect(
     for party, order_id, amount in db.execute(payments_stmt).all():
         balance = balances.setdefault(party, CounterpartyBalance(counterparty_id=party))
         balance.paid += Decimal(amount)
+        if order_id is not None:
+            targeted[order_id] = targeted.get(order_id, Decimal(0)) + Decimal(amount)
+        else:
+            free[party] = free.get(party, Decimal(0)) + Decimal(amount)
+
+    # Возвраты гасят долг наравне с оплатами: товар уехал обратно, платить за
+    # него нечего. Учитываем только проведённые — черновик обязательств не меняет.
+    returns_stmt = select(Return.counterparty_id, Return.order_id, Return.total_amount).where(
+        Return.status == ReturnStatus.POSTED
+    )
+    if counterparty_id is not None:
+        returns_stmt = returns_stmt.where(Return.counterparty_id == counterparty_id)
+
+    for party, order_id, amount in db.execute(returns_stmt).all():
+        balance = balances.setdefault(party, CounterpartyBalance(counterparty_id=party))
+        balance.returned += Decimal(amount)
         if order_id is not None:
             targeted[order_id] = targeted.get(order_id, Decimal(0)) + Decimal(amount)
         else:

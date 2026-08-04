@@ -101,6 +101,7 @@ export const ru = {
   },
 
   nav: {
+    returns: 'Возвраты',
     import: 'Импорт из файла',
     routes: 'Маршруты',
     route: 'Мой маршрут',

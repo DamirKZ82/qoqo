@@ -66,6 +66,7 @@ class SettlementRow(BaseModel):
     counterparty_name: str
     charged: Decimal
     paid: Decimal
+    returned: Decimal
     debt: Decimal
     overdue: Decimal
     oldest_overdue_days: int
@@ -87,6 +88,7 @@ class CounterpartyStatement(BaseModel):
     counterparty_name: str
     charged: Decimal
     paid: Decimal
+    returned: Decimal
     debt: Decimal
     overdue: Decimal
     aging: AgingBuckets

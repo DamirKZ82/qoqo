@@ -83,6 +83,7 @@ export const kk: Dictionary = {
   },
 
   nav: {
+    returns: 'Қайтарулар',
     import: 'Файлдан импорт',
     routes: 'Бағдарлар',
     route: 'Менің бағдарым',

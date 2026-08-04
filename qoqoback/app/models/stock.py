@@ -27,6 +27,7 @@ class StockDocumentType(StrEnum):
     WRITEOFF = "writeoff"
     INVENTORY = "inventory"
     SHIPMENT = "shipment"
+    RETURN = "return"
 
 
 DOCUMENT_TITLES: dict[StockDocumentType, str] = {
@@ -34,6 +35,7 @@ DOCUMENT_TITLES: dict[StockDocumentType, str] = {
     StockDocumentType.WRITEOFF: "Списание",
     StockDocumentType.INVENTORY: "Инвентаризация",
     StockDocumentType.SHIPMENT: "Отгрузка",
+    StockDocumentType.RETURN: "Возврат от клиента",
 }
 
 DOCUMENT_PREFIXES: dict[StockDocumentType, str] = {
@@ -41,6 +43,7 @@ DOCUMENT_PREFIXES: dict[StockDocumentType, str] = {
     StockDocumentType.WRITEOFF: "СП",
     StockDocumentType.INVENTORY: "ИН",
     StockDocumentType.SHIPMENT: "ОТ",
+    StockDocumentType.RETURN: "ВЗ",
 }
 
 # Знак движения по каждому виду документа. У инвентаризации знака нет:
@@ -49,6 +52,8 @@ DOCUMENT_SIGNS: dict[StockDocumentType, int] = {
     StockDocumentType.RECEIPT: 1,
     StockDocumentType.WRITEOFF: -1,
     StockDocumentType.SHIPMENT: -1,
+    # Возврат приходует товар обратно на склад.
+    StockDocumentType.RETURN: 1,
 }
 
 
@@ -110,6 +115,10 @@ class StockDocument(UUIDMixin, TimestampMixin, Base):
     # Заявка, по которой сделана отгрузка. У прочих документов пусто.
     order_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("orders.id", ondelete="SET NULL"), index=True
+    )
+    # Возврат, породивший приход. У прочих документов пусто.
+    return_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("returns.id", ondelete="SET NULL"), index=True
     )
 
     comment: Mapped[str | None] = mapped_column(String(1000))
