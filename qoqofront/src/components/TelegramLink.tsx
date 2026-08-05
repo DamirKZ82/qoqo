@@ -157,18 +157,20 @@ export function TelegramLink({ open, onClose }: { open: boolean; onClose: () => 
                 <Alert severity="warning">{t.telegram.noBotName}</Alert>
               )}
 
-              {/* Ссылка может открываться на другом устройстве — тогда код
-                  вводится в бота вручную командой /start. */}
+              {/* Готовая команда, а не голый код: ссылка t.me показывает кнопку
+                  «Старт» только тому, кто бота ещё не запускал. Всем остальным
+                  она просто открывает чат, и команду приходится отправлять
+                  самому — тогда её нужно скопировать целиком. */}
               <TextField
-                label={t.telegram.code}
-                value={link.code}
+                label={t.telegram.command}
+                value={`/start ${link.code}`}
                 slotProps={{
                   input: {
                     readOnly: true,
                     endAdornment: (
                       <IconButton
                         size="small"
-                        onClick={() => navigator.clipboard.writeText(link.code)}
+                        onClick={() => navigator.clipboard.writeText(`/start ${link.code}`)}
                         aria-label={t.common.copy}
                       >
                         <ContentCopyIcon fontSize="small" />
@@ -176,7 +178,7 @@ export function TelegramLink({ open, onClose }: { open: boolean; onClose: () => 
                     ),
                   },
                 }}
-                helperText={t.telegram.codeHint(formatDateTime(link.expires_at))}
+                helperText={t.telegram.commandHint(formatDateTime(link.expires_at))}
                 fullWidth
               />
 
