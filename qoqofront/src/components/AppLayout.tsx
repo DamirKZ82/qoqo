@@ -49,6 +49,10 @@ import { OfflineBar } from './OfflineBar'
 import { TelegramLink } from './TelegramLink'
 import { LanguageSwitch, ThemeToggle } from './Preferences'
 
+// Фирменный синий Telegram. Одинаков в светлой и тёмной теме: это цвет
+// чужого бренда, и подстраивать его под нашу палитру неправильно.
+const TELEGRAM_BLUE = '#229ED9'
+
 type NavGroup = 'work' | 'references' | 'administration'
 
 interface NavItem {
@@ -316,7 +320,10 @@ export function AppLayout() {
                 <IconButton onClick={() => setTelegramOpen(true)} size="small">
                   <TelegramIcon
                     fontSize="small"
-                    color={user?.telegram_linked ? 'primary' : 'inherit'}
+                    // Привязан — красим в цвет самого телеграма, а не в
+                    // фирменный зелёный: так значок читается как «связано с
+                    // Telegram», а не как ещё один элемент нашего интерфейса.
+                    sx={{ color: user?.telegram_linked ? TELEGRAM_BLUE : 'inherit' }}
                   />
                 </IconButton>
               </Tooltip>
@@ -374,7 +381,10 @@ export function AppLayout() {
                 <IconButton onClick={() => setTelegramOpen(true)} size="small">
                   <TelegramIcon
                     fontSize="small"
-                    color={user?.telegram_linked ? 'primary' : 'inherit'}
+                    // Привязан — красим в цвет самого телеграма, а не в
+                    // фирменный зелёный: так значок читается как «связано с
+                    // Telegram», а не как ещё один элемент нашего интерфейса.
+                    sx={{ color: user?.telegram_linked ? TELEGRAM_BLUE : 'inherit' }}
                   />
                 </IconButton>
               </Tooltip>
