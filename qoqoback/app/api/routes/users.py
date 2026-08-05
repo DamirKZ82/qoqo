@@ -1,7 +1,7 @@
 import uuid
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
@@ -52,7 +52,14 @@ def list_users(
 
 
 @router.post("", response_model=UserCreated, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserWrite, db: DbSession, admin: CurrentUser) -> UserCreated:
+def create_user(
+    payload: UserWrite,
+    db: DbSession,
+    admin: CurrentUser,
+    # Адрес сайта берём из запроса: администратор заводит сотрудника из
+    # браузера, значит адрес известен точно и переменную можно не задавать.
+    origin: Annotated[str | None, Header()] = None,
+) -> UserCreated:
     """Заводит сотрудника и отправляет приглашение.
 
     Пароль здесь не задаётся: сотрудник получает письмо и устанавливает его сам.
@@ -89,16 +96,21 @@ def create_user(payload: UserWrite, db: DbSession, admin: CurrentUser) -> UserCr
     db.commit()
     db.refresh(user)
 
-    sent = send_invitation(user, raw_token)
+    sent = send_invitation(user, raw_token, origin)
     return UserCreated(
         user=UserRead.model_validate(user_payload(user)),
         invitation_sent=sent,
-        invitation_link=None if sent else build_link(raw_token),
+        invitation_link=None if sent else build_link(raw_token, origin),
     )
 
 
 @router.post("/{user_id}/invite", response_model=UserCreated)
-def resend_invitation(user_id: uuid.UUID, db: DbSession, admin: CurrentUser) -> UserCreated:
+def resend_invitation(
+    user_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentUser,
+    origin: Annotated[str | None, Header()] = None,
+) -> UserCreated:
     """Повторно отправляет приглашение — прошлая ссылка при этом гасится."""
 
     if admin.role != UserRole.ADMIN:
@@ -114,11 +126,11 @@ def resend_invitation(user_id: uuid.UUID, db: DbSession, admin: CurrentUser) -> 
     _, raw_token = create_invitation(db, user=user, created_by=admin)
     db.commit()
 
-    sent = send_invitation(user, raw_token)
+    sent = send_invitation(user, raw_token, origin)
     return UserCreated(
         user=UserRead.model_validate(user_payload(user)),
         invitation_sent=sent,
-        invitation_link=None if sent else build_link(raw_token),
+        invitation_link=None if sent else build_link(raw_token, origin),
     )
 
 

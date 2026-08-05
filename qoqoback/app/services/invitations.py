@@ -15,9 +15,36 @@ def hash_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
-def build_link(raw_token: str) -> str:
-    base = get_settings().frontend_url.rstrip("/")
-    return f"{base}/set-password?token={quote(raw_token)}"
+def link_base(origin: str | None = None) -> str:
+    """Адрес сайта, из которого собирается ссылка приглашения.
+
+    Сначала берём источник запроса: сотрудника заводит администратор, открывший
+    систему в браузере, — значит адрес её сайта известен точно. FRONTEND_URL
+    остаётся запасным вариантом: он нужен там, где запроса нет вовсе — в
+    сид-скрипте и в консольной выдаче приглашения.
+
+    Так забытая переменная не приводит к ссылке на localhost в письме
+    сотруднику, а именно это и случилось на боевом контуре.
+
+    Источник принимаем только из списка разрешённых. Иначе подделанный
+    заголовок Origin увёл бы ссылку с одноразовым токеном на чужой сайт —
+    приглашения выписывает администратор, но проверять его на внимательность
+    здесь незачем.
+    """
+
+    settings = get_settings()
+
+    if origin:
+        источник = origin.strip().rstrip("/")
+        разрешённые = {item.strip().rstrip("/") for item in settings.cors_origins_list}
+        if источник in разрешённые:
+            return источник
+
+    return settings.frontend_url.rstrip("/")
+
+
+def build_link(raw_token: str, origin: str | None = None) -> str:
+    return f"{link_base(origin)}/set-password?token={quote(raw_token)}"
 
 
 def create_invitation(
@@ -59,12 +86,12 @@ def create_invitation(
     return invitation, raw_token
 
 
-def send_invitation(user: User, raw_token: str) -> bool:
+def send_invitation(user: User, raw_token: str, origin: str | None = None) -> bool:
     settings = get_settings()
     return send_invitation_email(
         to=user.email,
         full_name=user.full_name,
-        link=build_link(raw_token),
+        link=build_link(raw_token, origin),
         expires_hours=settings.invite_expire_hours,
     )
 
