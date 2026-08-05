@@ -11,6 +11,7 @@ import { useState } from 'react'
 import { Link as RouterLink, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { errorMessage } from '../../api/client'
+import { offerToSavePassword } from '../../lib/credentials'
 import { Logo } from '../../components/Logo'
 import { LanguageSwitch, ThemeToggle } from '../../components/Preferences'
 import { useAuth } from '../../auth/AuthContext'
@@ -39,6 +40,9 @@ export function LoginPage() {
     setError(null)
     try {
       await login(email, password)
+      // Успех состоялся — теперь можно предложить сохранить. Ждём: после
+      // перехода компонент размонтируется, и окно подтверждения не появится.
+      await offerToSavePassword(email, password)
       navigate('/app', { replace: true })
     } catch (err) {
       setError(errorMessage(err, t.login.failed))
@@ -85,6 +89,10 @@ export function LoginPage() {
               size="medium"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              // name и id — не украшение: эвристика браузера опознаёт форму
+              // входа по ним не меньше, чем по autocomplete.
+              name="email"
+              id="email"
               autoComplete="username"
               required
               fullWidth
@@ -95,6 +103,8 @@ export function LoginPage() {
               size="medium"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              name="password"
+              id="password"
               autoComplete="current-password"
               required
               fullWidth
