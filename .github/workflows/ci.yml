@@ -40,6 +40,20 @@ jobs:
       - name: Зависимости
         run: pip install -r requirements-dev.txt
 
+      # Копия списка лежит рядом с точкой входа: сборщик Python на Vercel ищет
+      # requirements.txt именно там. Разойтись с оригиналом она может только
+      # молча — на проде это оборачивается функцией без библиотек.
+      - name: Список зависимостей для Vercel совпадает
+        run: |
+          # Сравниваем только строки пакетов: комментарии у файлов свои.
+          grep -vE '^[[:space:]]*(#|$)' requirements.txt > /tmp/root.txt
+          grep -vE '^[[:space:]]*(#|$)' api/requirements.txt > /tmp/api.txt
+          if ! diff /tmp/root.txt /tmp/api.txt; then
+            echo '::error file=qoqoback/api/requirements.txt::Расходится с requirements.txt'
+            exit 1
+          fi
+          echo 'списки совпадают'
+
       - name: Линтер
         run: ruff check .
 
