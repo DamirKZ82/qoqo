@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import Any
 
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -88,6 +90,51 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     smtp_use_tls: bool = True
     smtp_use_ssl: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def _ignore_empty(cls, data: Any) -> Any:
+        """Пустое значение переменной означает «не задано», а не ошибку.
+
+        В панелях облачных платформ переменную заводят заранее, оставляя
+        значение пустым. Для строки это безобидно, а для числа или флага
+        оборачивается падением при разборе настроек — то есть приложение вообще
+        не поднимается, и по сообщению платформы причину не найти.
+        """
+
+        if not isinstance(data, dict):
+            return data
+
+        for name, field in cls.model_fields.items():
+            if field.annotation is str:
+                continue
+            for key in (name, name.upper()):
+                value = data.get(key)
+                if isinstance(value, str) and not value.strip():
+                    data.pop(key)
+
+        return data
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _use_psycopg(cls, value: Any) -> Any:
+        """Дописывает драйвер к адресу базы.
+
+        Neon, Supabase и облачные панели выдают адрес как `postgresql://…`.
+        SQLAlchemy для такого адреса берёт psycopg2, которого здесь нет, и
+        падает при создании движка — при импорте, до первого запроса. Ставим
+        тот драйвер, который установлен, вместо того чтобы требовать этого от
+        человека.
+        """
+
+        if not isinstance(value, str):
+            return value
+
+        for prefix in ("postgresql://", "postgres://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+
+        return value
 
     @property
     def cors_origins_list(self) -> list[str]:
