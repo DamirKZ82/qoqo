@@ -89,6 +89,13 @@ export const theme = createTheme({
   shape: { borderRadius: 12 },
   typography: {
     fontFamily: ['Montserrat', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'].join(','),
+    // Montserrat в обычном начертании выглядит бледно: у неё широкие буквы и
+    // тонкие штрихи, и на светлом фоне текст будто выцветает. Берём средний
+    // вес как основной — он уже загружается, страница не тяжелеет.
+    fontWeightRegular: 500,
+    fontWeightMedium: 600,
+    body1: { fontWeight: 500 },
+    body2: { fontWeight: 500 },
     // Заголовки — Playfair Display, как в брендбуке.
     h1: { fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700, fontSize: '2.25rem' },
     h2: { fontFamily: '"Playfair Display", Georgia, serif', fontWeight: 700, fontSize: '1.75rem' },
