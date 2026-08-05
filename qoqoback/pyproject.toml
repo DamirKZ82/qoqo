@@ -1,8 +1,15 @@
-[project]
-name = "qoqoback"
-version = "0.1.0"
-description = "Бэкенд проекта qoqo"
-requires-python = ">=3.12"
+# Таблицы [project] здесь намеренно нет.
+#
+# Сборщик Python на Vercel, найдя [project], считает pyproject.toml источником
+# зависимостей и ставит объявленное в нём, а requirements.txt не смотрит вовсе.
+# Таблица была без dependencies, поэтому функция разворачивалась пустой и падала
+# на импорте: ModuleNotFoundError: No module named 'fastapi'.
+#
+# Список зависимостей один — requirements.txt. Если [project] понадобится,
+# зависимости придётся перенести туда целиком, а не держать в двух местах:
+# разойдутся они молча, а узнается об этом на боевом контуре.
+#
+# Версия Python задана файлом .python-version, ruff берёт свою из target-version.
 
 [tool.ruff]
 line-length = 100

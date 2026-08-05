@@ -32,6 +32,14 @@ Root Directory — `qoqoback`. Остальное берётся из `vercel.js
 заворачивается на функцию `api/index.py`, которая отдаёт ASGI-приложение
 FastAPI. Версия Python зафиксирована файлом `.python-version`.
 
+**В `pyproject.toml` не должно быть таблицы `[project]`.** Сборщик Python,
+найдя её, считает `pyproject.toml` источником зависимостей и ставит объявленное
+там, а `requirements.txt` не смотрит вовсе. Таблица без `dependencies`
+оборачивается функцией без единой библиотеки: `ModuleNotFoundError: No module
+named 'fastapi'` и `FUNCTION_INVOCATION_FAILED` на всех путях. Список
+зависимостей в проекте один — `requirements.txt`; если `[project]` понадобится,
+переносить туда придётся весь список, а не держать его в двух местах.
+
 **Framework Preset должен быть `Other`, а Build Command и Install Command —
 пустыми.** Если проект завести с чужой предустановкой или прописать свою
 команду установки, Vercel соберёт его как проект на Node: исходники скопирует,
