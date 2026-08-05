@@ -443,6 +443,8 @@ export const kk: Dictionary = {
     organization: 'Ұйым',
     parent: 'Құрамына кіреді',
     okeiCode: 'ОКЕИ коды',
+    okeiPick: 'ОКЕИ-ден таңдау',
+    okeiPickHint: 'Кодты, атауын және толық атауын толтырады',
     okeiHint: '166 — келі, 796 — дана',
     ratio: 'Коэффициенті',
     sortOrder: 'Реті',

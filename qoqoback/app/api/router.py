@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     auth,
+    classifiers,
     content,
     field,
     health,
@@ -28,6 +29,7 @@ api_router.include_router(content.router)
 api_router.include_router(news.router)
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
+api_router.include_router(classifiers.router)
 api_router.include_router(orders.router)
 api_router.include_router(reports.router)
 api_router.include_router(imports.router)

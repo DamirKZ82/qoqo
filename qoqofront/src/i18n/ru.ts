@@ -457,6 +457,8 @@ export const ru = {
     organization: 'Организация',
     parent: 'Входит в',
     okeiCode: 'Код по ОКЕИ',
+    okeiPick: 'Подобрать из ОКЕИ',
+    okeiPickHint: 'Заполнит код, наименование и полное наименование',
     okeiHint: '166 — килограмм, 796 — штука',
     ratio: 'Коэффициент',
     sortOrder: 'Порядок',

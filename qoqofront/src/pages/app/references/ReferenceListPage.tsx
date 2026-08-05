@@ -3,6 +3,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import SearchIcon from '@mui/icons-material/Search'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import Alert from '@mui/material/Alert'
+import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -26,12 +27,13 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 
-import { errorMessage } from '../../../api/client'
+import { api, errorMessage } from '../../../api/client'
 import { useReference, useSaveReference } from '../../../api/queries'
-import type { ReferenceItem } from '../../../api/types'
+import type { OkeiUnit, ReferenceItem } from '../../../api/types'
 import { useAuth } from '../../../auth/AuthContext'
 import { useT, type Dictionary } from '../../../i18n'
 import { formatDate } from '../../../lib/format'
@@ -68,6 +70,60 @@ function RefSelect({
         </MenuItem>
       ))}
     </TextField>
+  )
+}
+
+
+/** Подбор единицы из ОКЕИ.
+ *
+ * Заполняет сразу четыре поля: код, наименование, полное наименование и код по
+ * ОКЕИ. Смысл классификатора в том, чтобы человек не набирал их руками и не
+ * разошёлся с 1С в коде — там единица сопоставляется именно по нему.
+ */
+function OkeiPicker({ onPick }: { onPick: (unit: OkeiUnit) => void }) {
+  const t = useT()
+  const [query, setQuery] = useState('')
+
+  const { data } = useQuery({
+    queryKey: ['classifiers', 'okei', query],
+    queryFn: async () =>
+      (await api.get<OkeiUnit[]>('/classifiers/okei', { params: { search: query || undefined } }))
+        .data,
+  })
+
+  return (
+    <Autocomplete
+      options={data ?? []}
+      // Отбор делает сервер — по коду, обозначению и названию. Свой фильтр MUI
+      // применил бы поверх, сверяя запрос с подписью «166 — Килограмм», и
+      // «кг» не нашлось бы в ней ни разу: верное совпадение просто исчезло бы.
+      filterOptions={(options) => options}
+      groupBy={(option) => option.group}
+      getOptionLabel={(option) => `${option.code} — ${option.name}`}
+      isOptionEqualToValue={(a, b) => a.code === b.code}
+      // Значение не храним: подбор — действие, а не поле. Выбрали — заполнили
+      // остальные поля и поле подбора снова пустое.
+      value={null}
+      onChange={(_, option) => option && onPick(option)}
+      inputValue={query}
+      onInputChange={(_, value) => setQuery(value)}
+      noOptionsText={t.common.nothingFound}
+      renderOption={(props, option) => (
+        <li {...props} key={option.code}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
+            <Typography sx={{ fontWeight: 600, minWidth: 44 }}>{option.code}</Typography>
+            <Typography>{option.name}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {option.symbol}
+            </Typography>
+          </Stack>
+        </li>
+      )}
+      renderInput={(params) => (
+        <TextField {...params} label={t.fields.okeiPick} helperText={t.fields.okeiPickHint} />
+      )}
+      fullWidth
+    />
   )
 }
 
@@ -149,6 +205,9 @@ export function ReferenceListPage() {
     const payload: Record<string, unknown> = { is_active: true }
 
     for (const field of config!.fields) {
+      // Подбор — действие, а не реквизит: отправлять его нечего.
+      if (field.type === 'okei') continue
+
       const raw = values[field.name]
       if (field.type === 'checkbox') {
         payload[field.name] = Boolean(raw)
@@ -316,6 +375,23 @@ export function ReferenceListPage() {
 
             {config.fields.map((field) => {
               const value = values[field.name]
+
+              if (field.type === 'okei') {
+                return (
+                  <OkeiPicker
+                    key={field.name}
+                    onPick={(unit) =>
+                      setValues((current) => ({
+                        ...current,
+                        code: unit.code,
+                        name: unit.symbol,
+                        full_name: unit.name,
+                        okei_code: unit.code,
+                      }))
+                    }
+                  />
+                )
+              }
 
               if (field.type === 'ref') {
                 return (

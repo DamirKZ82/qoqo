@@ -4,7 +4,7 @@ import type { Dictionary } from '../../../i18n'
 export interface FieldConfig {
   name: string
   label: string
-  type?: 'text' | 'number' | 'checkbox' | 'date' | 'ref' | 'color' | 'url'
+  type?: 'text' | 'number' | 'checkbox' | 'date' | 'ref' | 'color' | 'url' | 'okei'
   /** Ресурс API для выбора значения, если type === 'ref'. */
   refResource?: string
   /** Отбор для списка значений: например, только торговые представители. */
@@ -69,8 +69,11 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
       singular: t.referenceSingulars['units'],
     fields: [
       ...codeAndName,
+      // Подбор идёт первым: обычно единицу заводят именно из классификатора,
+      // а руками дозаполняют исключения.
+      { name: 'okei_pick', label: t.fields.okeiPick, type: 'okei' },
       { name: 'full_name', label: t.fields.fullName, inList: true },
-      { name: 'okei_code', label: t.fields.okeiCode, helperText: t.fields.okeiHint },
+      { name: 'okei_code', label: t.fields.okeiCode, helperText: t.fields.okeiHint, inList: true },
       { name: 'ratio', label: t.fields.ratio, type: 'number' },
     ],
   },

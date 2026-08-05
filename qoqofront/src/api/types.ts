@@ -290,3 +290,11 @@ export interface MailSettings {
   password_set: boolean
   configured: boolean
 }
+
+/** Единица измерения из ОКЕИ — для подбора при заведении своей. */
+export interface OkeiUnit {
+  code: string
+  symbol: string
+  name: string
+  group: string
+}
