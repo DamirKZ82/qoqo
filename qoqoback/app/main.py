@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -9,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from app import __version__
 from app.api.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.api.router import api_router
+from app.core.checks import cors_problem
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.bootstrap import ensure_owner
@@ -28,6 +30,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     run_migrations_if_enabled()
     # После миграций: на новой базе таблицы появляются только что.
     ensure_owner()
+
+    if (беда := cors_problem(settings)) is not None:
+        logging.getLogger("app.startup").warning(беда)
+
     yield
     engine.dispose()
 
