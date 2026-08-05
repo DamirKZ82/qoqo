@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.core.deps import CurrentUser, DbSession, require_roles
-from app.core.mail import resolve_config, send_email
+from app.core.mail import resolve_config, try_send
 from app.core.secrets import encrypt
 from app.models import SETTINGS_ID, AppSettings, UserRole
 from app.schemas.settings import (
@@ -181,11 +181,9 @@ def send_test_email(user: CurrentUser, _: Any = admin_only) -> MailTestResult:
     не дойдёт до нового сотрудника.
     """
 
-    config = resolve_config()
-    if not config.configured:
-        return MailTestResult(sent=False, detail="Почта не настроена: не указан сервер")
-
-    ok = send_email(
+    # Возвращаем ответ сервера как есть: «отправить не удалось» не помогает
+    # никому, а причин отказа у почты десяток.
+    error = try_send(
         to=user.email,
         subject="QoQo — проверка настроек почты",
         text_body=(
@@ -195,9 +193,6 @@ def send_test_email(user: CurrentUser, _: Any = admin_only) -> MailTestResult:
         ),
     )
 
-    if ok:
+    if error is None:
         return MailTestResult(sent=True, detail=f"Письмо отправлено на {user.email}")
-    return MailTestResult(
-        sent=False,
-        detail="Отправить не удалось. Подробности — в журнале ошибок системы",
-    )
+    return MailTestResult(sent=False, detail=error)

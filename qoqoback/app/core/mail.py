@@ -92,6 +92,62 @@ def send_email(*, to: str, subject: str, text_body: str, html_body: str | None =
         )
         return False
 
+    error = try_send(to=to, subject=subject, text_body=text_body, html_body=html_body)
+    if error:
+        logger.error("Не удалось отправить письмо на %s: %s", to, error)
+        return False
+    return True
+
+
+def describe_failure(exc: Exception) -> str:
+    """Человеческое объяснение отказа почтового сервера.
+
+    Серверы отвечают для машин: «(535, b'5.7.8 ...')». Разбираем частые случаи,
+    остальное отдаём как есть — даже сырой текст полезнее, чем «не удалось».
+    """
+
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        return (
+            "Сервер не принял логин или пароль. У Яндекса, Mail.ru и Gmail для внешних "
+            "программ нужен отдельный пароль приложения, основной не подходит"
+        )
+    if isinstance(exc, smtplib.SMTPSenderRefused):
+        return f"Сервер отклонил отправителя «{exc.sender}». Здесь нужен адрес почты"
+    if isinstance(exc, smtplib.SMTPRecipientsRefused):
+        return "Сервер отклонил получателя"
+    if isinstance(exc, smtplib.SMTPConnectError | smtplib.SMTPServerDisconnected):
+        return "Сервер разорвал соединение. Обычно это неверный порт или режим шифрования"
+    if isinstance(exc, TimeoutError):
+        return "Сервер не ответил вовремя. Проверьте адрес и порт"
+
+    # Ответ сервера отдаём дословно: он и есть самое точное объяснение.
+    if isinstance(exc, smtplib.SMTPResponseException):
+        текст = exc.smtp_error
+        расшифровка = текст.decode("utf-8", "replace") if isinstance(текст, bytes) else str(текст)
+        return f"Сервер ответил: {exc.smtp_code} {расшифровка}"
+
+    # Проверять раньше OSError: smtplib.SMTPException от него и наследуется,
+    # иначе «письмо отклонено» превращается в «не удалось подключиться».
+    if isinstance(exc, smtplib.SMTPException):
+        return str(exc) or type(exc).__name__
+
+    if isinstance(exc, OSError):
+        return f"Не удалось подключиться: {exc.strerror or exc}"
+
+    return str(exc) or type(exc).__name__
+
+
+def try_send(*, to: str, subject: str, text_body: str, html_body: str | None = None) -> str | None:
+    """Отправляет письмо, возвращая описание отказа или None при успехе.
+
+    Отдельно от send_email: проверке настроек нужна причина, а не просто
+    «не вышло» — ради неё кнопку проверки и добавляли.
+    """
+
+    settings = resolve_config()
+    if not settings.configured:
+        return "Почта не настроена: не указан сервер"
+
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = settings.sender or "noreply@qoqo.kz"
@@ -112,11 +168,10 @@ def send_email(*, to: str, subject: str, text_body: str, html_body: str | None =
             if settings.user:
                 server.login(settings.user, settings.password)
             server.send_message(message)
-    except (smtplib.SMTPException, OSError):
-        logger.exception("Не удалось отправить письмо на %s", to)
-        return False
+    except (smtplib.SMTPException, OSError, ValueError) as exc:
+        return describe_failure(exc)
 
-    return True
+    return None
 
 
 def send_invitation_email(*, to: str, full_name: str, link: str, expires_hours: int) -> bool:
