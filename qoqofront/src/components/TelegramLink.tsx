@@ -140,7 +140,7 @@ export function TelegramLink({ open, onClose }: { open: boolean; onClose: () => 
             <Stack spacing={2}>
               <Alert severity="info">{t.telegram.openHint}</Alert>
 
-              {link.deep_link && (
+              {link.deep_link ? (
                 <Button
                   variant="contained"
                   href={link.deep_link}
@@ -150,6 +150,11 @@ export function TelegramLink({ open, onClose }: { open: boolean; onClose: () => 
                 >
                   {t.telegram.openBot}
                 </Button>
+              ) : (
+                /* Ссылка t.me строится из имени бота, а его система спрашивает
+                   у самого Telegram. Не ответил — кнопки нет, и раньше это
+                   выглядело как поломка интерфейса без объяснений. */
+                <Alert severity="warning">{t.telegram.noBotName}</Alert>
               )}
 
               {/* Ссылка может открываться на другом устройстве — тогда код
