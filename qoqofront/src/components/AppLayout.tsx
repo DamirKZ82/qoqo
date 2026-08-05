@@ -243,7 +243,7 @@ export function AppLayout() {
       <Box sx={{ p: 2 }}>
         {/* Логотип ведёт на сайт: это его привычное поведение в шапке. */}
         <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
-          <Logo height={36} />
+          <Logo height={44} />
         </Box>
       </Box>
       <Divider />
@@ -371,7 +371,7 @@ export function AppLayout() {
                 <MenuIcon />
               </IconButton>
               <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
-                <Logo height={28} />
+                <Logo height={36} />
               </Box>
               <Box sx={{ flexGrow: 1 }} />
               <LanguageSwitch />
