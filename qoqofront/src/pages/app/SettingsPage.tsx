@@ -1,20 +1,24 @@
 import DeleteIcon from '@mui/icons-material/Delete'
+import SendIcon from '@mui/icons-material/Send'
 import UploadIcon from '@mui/icons-material/Upload'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Chip from '@mui/material/Chip'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
+import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 
 import { api, errorMessage, mediaUrl } from '../../api/client'
 import { useSettings } from '../../api/queries'
-import type { AppSettings } from '../../api/types'
+import type { AppSettings, MailSettings } from '../../api/types'
 import { Logo } from '../../components/Logo'
 import { useT } from '../../i18n'
 import logoDarkSrc from '../../assets/logo-dark.svg'
@@ -132,6 +136,156 @@ function LogoSlot({
           accept=".svg,.png,.jpg,.jpeg,.webp,image/svg+xml,image/png,image/jpeg,image/webp"
           hidden
           onChange={handleFile}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
+
+/** Настройки почты. Отдельной карточкой: у них своё сохранение и своя проверка. */
+function MailCard() {
+  const t = useT()
+  const [form, setForm] = useState<Record<string, unknown> | null>(null)
+  const [password, setPassword] = useState('')
+  const [note, setNote] = useState<string | null>(null)
+
+  const { data, refetch } = useQuery({
+    queryKey: ['settings', 'mail'],
+    queryFn: async () => (await api.get<MailSettings>('/settings/mail')).data,
+  })
+
+  // Форму наполняем один раз: иначе перезапрос затирал бы то, что человек
+  // печатает прямо сейчас.
+  const значения = form ?? (data as unknown as Record<string, unknown>) ?? {}
+  const поле = (имя: string) => (значения[имя] as string | number | null) ?? ''
+  const правка = (имя: string, значение: unknown) =>
+    setForm({ ...(значения as Record<string, unknown>), [имя]: значение })
+
+  const save = useMutation({
+    mutationFn: async () =>
+      (await api.put<MailSettings>('/settings/mail', { ...значения, smtp_password: password })).data,
+    onSuccess: async () => {
+      setPassword('')
+      setForm(null)
+      await refetch()
+      setNote(t.settings.mail.saved)
+    },
+  })
+
+  const test = useMutation({
+    mutationFn: async () =>
+      (await api.post<{ sent: boolean; detail: string }>('/settings/mail/test')).data,
+    onSuccess: (result) => setNote(result.detail),
+    onError: (error) => setNote(errorMessage(error)),
+  })
+
+  return (
+    <Card>
+      <CardContent>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">{t.settings.mail.title}</Typography>
+          <Chip
+            size="small"
+            color={data?.configured ? 'success' : 'default'}
+            variant={data?.configured ? 'filled' : 'outlined'}
+            label={data?.configured ? t.settings.mail.configured : t.settings.mail.notConfigured}
+          />
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {t.settings.mail.hint}
+        </Typography>
+
+        <Stack spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label={t.settings.mail.host}
+              value={поле('smtp_host')}
+              onChange={(e) => правка('smtp_host', e.target.value)}
+              placeholder="smtp.yandex.ru"
+              fullWidth
+            />
+            <TextField
+              label={t.settings.mail.port}
+              type="number"
+              value={поле('smtp_port') || 587}
+              onChange={(e) => правка('smtp_port', Number(e.target.value))}
+              sx={{ minWidth: 120 }}
+            />
+          </Stack>
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label={t.settings.mail.user}
+              value={поле('smtp_user')}
+              onChange={(e) => правка('smtp_user', e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label={t.settings.mail.password}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              helperText={data?.password_set ? t.settings.mail.passwordKept : undefined}
+              autoComplete="new-password"
+              fullWidth
+            />
+          </Stack>
+
+          <TextField
+            label={t.settings.mail.from}
+            value={поле('smtp_from')}
+            onChange={(e) => правка('smtp_from', e.target.value)}
+            helperText={t.settings.mail.fromHint}
+            fullWidth
+          />
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(значения.smtp_use_ssl)}
+                  onChange={(e) => правка('smtp_use_ssl', e.target.checked)}
+                />
+              }
+              label={t.settings.mail.useSsl}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(значения.smtp_use_tls)}
+                  onChange={(e) => правка('smtp_use_tls', e.target.checked)}
+                />
+              }
+              label={t.settings.mail.useTls}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {t.settings.mail.sslHint}
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending}>
+              {t.settings.submit}
+            </Button>
+            <Button
+              startIcon={<SendIcon />}
+              onClick={() => test.mutate()}
+              disabled={test.isPending || !data?.configured}
+            >
+              {t.settings.mail.test}
+            </Button>
+            <Typography variant="caption" color="text.secondary">
+              {t.settings.mail.testHint}
+            </Typography>
+          </Stack>
+        </Stack>
+
+        <Snackbar
+          open={Boolean(note)}
+          autoHideDuration={6000}
+          onClose={() => setNote(null)}
+          message={note}
         />
       </CardContent>
     </Card>
@@ -304,6 +458,8 @@ export function SettingsPage() {
           </Stack>
         </CardContent>
       </Card>
+
+      <MailCard />
 
       <Box>
         <Button variant="contained" size="large" onClick={handleSave} disabled={save.isPending}>

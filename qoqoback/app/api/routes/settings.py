@@ -2,9 +2,17 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
-from app.core.deps import DbSession, require_roles
+from app.core.deps import CurrentUser, DbSession, require_roles
+from app.core.mail import resolve_config, send_email
+from app.core.secrets import encrypt
 from app.models import SETTINGS_ID, AppSettings, UserRole
-from app.schemas.settings import SettingsRead, SettingsWrite
+from app.schemas.settings import (
+    MailSettingsRead,
+    MailSettingsWrite,
+    MailTestResult,
+    SettingsRead,
+    SettingsWrite,
+)
 from app.services.storage import save_file
 
 router = APIRouter(prefix="/settings", tags=["Настройки системы"])
@@ -119,3 +127,77 @@ def reset_logo(db: DbSession, variant: str = "light", _: Any = admin_only) -> An
     db.commit()
     db.refresh(settings)
     return settings
+
+
+# --- Почта ---------------------------------------------------------------
+
+
+def _mail_read(settings: AppSettings) -> MailSettingsRead:
+    return MailSettingsRead(
+        smtp_host=settings.smtp_host,
+        smtp_port=settings.smtp_port,
+        smtp_user=settings.smtp_user,
+        smtp_from=settings.smtp_from,
+        smtp_use_tls=settings.smtp_use_tls,
+        smtp_use_ssl=settings.smtp_use_ssl,
+        password_set=bool(settings.smtp_password_enc),
+        configured=resolve_config().configured,
+    )
+
+
+@router.get("/mail", response_model=MailSettingsRead)
+def read_mail_settings(db: DbSession, _: Any = admin_only) -> Any:
+    """Настройки почты. Только администратору: здесь доступ к ящику компании."""
+
+    return _mail_read(get_or_create_settings(db))
+
+
+@router.put("/mail", response_model=MailSettingsRead)
+def update_mail_settings(payload: MailSettingsWrite, db: DbSession, _: Any = admin_only) -> Any:
+    settings = get_or_create_settings(db)
+
+    # Пароль обрабатывается отдельно: обратно он не отдаётся, поэтому с формы
+    # приходит пустым, когда его не меняли.
+    for field, value in payload.model_dump(exclude={"smtp_password"}).items():
+        setattr(settings, field, value)
+
+    if payload.smtp_password:
+        settings.smtp_password_enc = encrypt(payload.smtp_password)
+    elif not payload.smtp_host:
+        # Адрес сервера убрали — незачем держать и пароль от него.
+        settings.smtp_password_enc = None
+
+    db.commit()
+    db.refresh(settings)
+    return _mail_read(settings)
+
+
+@router.post("/mail/test", response_model=MailTestResult)
+def send_test_email(user: CurrentUser, _: Any = admin_only) -> MailTestResult:
+    """Отправляет письмо себе.
+
+    Единственный способ убедиться, что настройки верны: почтовые серверы
+    отказывают по десятку причин, и увидеть это надо до того, как приглашение
+    не дойдёт до нового сотрудника.
+    """
+
+    config = resolve_config()
+    if not config.configured:
+        return MailTestResult(sent=False, detail="Почта не настроена: не указан сервер")
+
+    ok = send_email(
+        to=user.email,
+        subject="QoQo — проверка настроек почты",
+        text_body=(
+            "Это проверочное письмо из системы QoQo.\n\n"
+            "Если вы его читаете, настройки почты верны и приглашения "
+            "сотрудникам будут доходить."
+        ),
+    )
+
+    if ok:
+        return MailTestResult(sent=True, detail=f"Письмо отправлено на {user.email}")
+    return MailTestResult(
+        sent=False,
+        detail="Отправить не удалось. Подробности — в журнале ошибок системы",
+    )

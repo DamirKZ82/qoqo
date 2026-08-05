@@ -278,3 +278,15 @@ export interface TurnoverReport {
   rows: TurnoverRow[]
   sleeping_after_days: number
 }
+
+/** Настройки почты. Пароля здесь нет: сервер его не отдаёт. */
+export interface MailSettings {
+  smtp_host: string | null
+  smtp_port: number
+  smtp_user: string | null
+  smtp_from: string | null
+  smtp_use_tls: boolean
+  smtp_use_ssl: boolean
+  password_set: boolean
+  configured: boolean
+}
