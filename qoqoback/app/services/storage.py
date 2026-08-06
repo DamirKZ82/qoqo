@@ -105,19 +105,39 @@ def resolve_config() -> StorageConfig:
 
 
 def save_file(data: bytes, subdir: str, extension: str, content_type: str) -> str:
-    """Сохраняет файл и возвращает адрес, по которому его отдавать."""
+    """Сохраняет файл и возвращает его имя внутри хранилища.
+
+    Возвращается именно имя (`products/ab12.png`), а не готовый адрес. Адрес
+    собирается при чтении — иначе он застывает в базе: сменили публичный адрес
+    бакета, переехали на свой домен или в другое хранилище — и все картинки
+    приходится загружать заново.
+    """
 
     config = resolve_config()
     # Имя генерируем сами: пользовательское имя файла в путь не попадает.
     filename = f"{uuid.uuid4().hex}{extension}"
+    key = f"{subdir}/{filename}"
 
     if config.configured:
-        return put_to_bucket(config, f"{subdir}/{filename}", data, content_type)
+        put_to_bucket(config, key, data, content_type)
+        return key
 
     target_dir = Path(get_settings().media_root) / subdir
     target_dir.mkdir(parents=True, exist_ok=True)
     (target_dir / filename).write_bytes(data)
-    return f"/media/{subdir}/{filename}"
+    return key
+
+
+def media_base_url() -> str:
+    """Адрес, из которого собираются ссылки на файлы.
+
+    Пустая строка означает «файлы у самого приложения»: клиент подставит свой
+    адрес API и путь `/media`. Так одна и та же запись в базе работает и на
+    локальном диске, и в бакете.
+    """
+
+    config = resolve_config()
+    return config.base_url if config.configured else ""
 
 
 def client(config: StorageConfig) -> Any:

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api } from './client'
+import { api, setFilesBase } from './client'
 import type { Language } from '../i18n'
 import type {
   AppSettings,
@@ -24,7 +24,13 @@ import type {
 export function useSettings() {
   return useQuery({
     queryKey: ['settings'],
-    queryFn: async () => (await api.get<AppSettings>('/settings')).data,
+    queryFn: async () => {
+      const { data } = await api.get<AppSettings>('/settings')
+      // Ставим базу для картинок сразу, а не эффектом в компоненте: адрес
+      // нужен уже при первой отрисовке шапки, до всякого useEffect.
+      setFilesBase(data.media_base_url ?? '')
+      return data
+    },
     staleTime: 5 * 60 * 1000,
   })
 }

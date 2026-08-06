@@ -44,6 +44,8 @@ export interface AppSettings {
   accent_color: string
   hero_title: string | null
   hero_subtitle: string | null
+  /** Откуда браузер читает файлы: адрес бакета либо пусто. */
+  media_base_url?: string
 }
 
 export type BlockType =

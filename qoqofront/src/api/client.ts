@@ -13,13 +13,30 @@ export const api = axios.create({
   // товара, логотипа и файла импорта.
 })
 
-/** Базовый адрес сервера — для картинок из /media. */
-export const mediaBase = baseURL
+/**
+ * Откуда браузер читает загруженные файлы.
+ *
+ * В базе хранится только имя файла внутри хранилища — `products/ab12.png`, —
+ * а начало адреса подставляется здесь. Так смена публичного адреса бакета или
+ * переезд в другое хранилище чинят все картинки разом: раньше адрес застывал
+ * в записи, и каждую приходилось загружать заново.
+ *
+ * Пусто — файлы отдаёт само приложение по /media.
+ */
+let filesBase = ''
+
+export function setFilesBase(value: string): void {
+  filesBase = value.replace(/\/$/, '')
+}
 
 export function mediaUrl(path: string | null | undefined): string | undefined {
   if (!path) return undefined
+
+  // Чужие ссылки и записи, оставшиеся от прежнего хранения, берём как есть.
   if (path.startsWith('http')) return path
-  return `${mediaBase}${path}`
+  if (path.startsWith('/media/')) return `${baseURL}${path}`
+
+  return filesBase ? `${filesBase}/${path}` : `${baseURL}/media/${path}`
 }
 
 api.interceptors.request.use((config) => {

@@ -48,7 +48,10 @@ def get_or_create_settings(db: DbSession) -> AppSettings:
 def read_settings(db: DbSession) -> Any:
     """Публичный эндпоинт — нужен лендингу и экрану входа до авторизации."""
 
-    return get_or_create_settings(db)
+    row = get_or_create_settings(db)
+    данные = SettingsRead.model_validate(row).model_dump()
+    данные["media_base_url"] = storage.media_base_url()
+    return данные
 
 
 @router.put("", response_model=SettingsRead)

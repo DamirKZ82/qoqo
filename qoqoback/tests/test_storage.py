@@ -26,17 +26,21 @@ def config(**overrides: Any) -> storage.StorageConfig:
     return storage.StorageConfig(**поля)
 
 
-def test_local_storage_writes_file_and_returns_media_url(
+def test_local_storage_writes_file_and_returns_key(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """В базу уходит имя файла, а не адрес: адрес собирается при чтении."""
+
     monkeypatch.setattr(storage, "get_settings", lambda: make_settings(media_root=str(tmp_path)))
     monkeypatch.setattr(storage, "resolve_config", config)
 
-    url = storage.save_file(b"picture", "branding", ".png", "image/png")
+    key = storage.save_file(b"picture", "branding", ".png", "image/png")
 
-    assert url.startswith("/media/branding/")
-    assert url.endswith(".png")
-    assert (tmp_path / url.removeprefix("/media/")).read_bytes() == b"picture"
+    assert key.startswith("branding/")
+    assert key.endswith(".png")
+    assert not key.startswith("/")
+    assert not key.startswith("http")
+    assert (tmp_path / key).read_bytes() == b"picture"
 
 
 def test_uploaded_name_does_not_reuse_client_filename(
@@ -53,7 +57,7 @@ def test_uploaded_name_does_not_reuse_client_filename(
     assert first != second
 
 
-def test_bucket_storage_puts_object_and_returns_public_url(
+def test_bucket_storage_puts_object_and_returns_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     настройки = config(
@@ -71,13 +75,14 @@ def test_bucket_storage_puts_object_and_returns_public_url(
 
     monkeypatch.setattr(storage, "client", lambda _: FakeClient())
 
-    url = storage.save_file(b"svg", "branding", ".svg", "image/svg+xml")
+    key = storage.save_file(b"svg", "branding", ".svg", "image/svg+xml")
 
     assert len(calls) == 1
     assert calls[0]["Bucket"] == "qoqo-media"
     assert calls[0]["Key"].startswith("branding/")
     assert calls[0]["ContentType"] == "image/svg+xml"
-    assert url == f"https://cdn.qoqo.kz/{calls[0]['Key']}"
+    # В базу уходит то же имя, что и в бакет: адрес в записи не застывает.
+    assert key == calls[0]["Key"]
 
 
 @pytest.mark.parametrize(
@@ -142,3 +147,17 @@ def test_database_settings_win_over_environment(monkeypatch: pytest.MonkeyPatch)
 )
 def test_bucket_name_is_stripped_from_endpoint(endpoint: str, expected: str) -> None:
     assert config(bucket="albina", endpoint_url=endpoint).endpoint_url == expected
+
+
+def test_media_base_is_empty_without_bucket(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Пусто означает «файлы отдаёт приложение» — клиент подставит свой адрес."""
+
+    monkeypatch.setattr(storage, "resolve_config", config)
+    assert storage.media_base_url() == ""
+
+
+def test_media_base_points_at_bucket(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        storage, "resolve_config", lambda: config(bucket="m", public_url="https://cdn.qoqo.kz")
+    )
+    assert storage.media_base_url() == "https://cdn.qoqo.kz"

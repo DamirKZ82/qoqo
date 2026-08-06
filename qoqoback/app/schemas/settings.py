@@ -16,6 +16,9 @@ class SettingsRead(ORMModel):
     accent_color: str
     hero_title: str | None
     hero_subtitle: str | None
+    # Откуда клиент собирает ссылки на файлы: адрес бакета либо пусто,
+    # если файлы отдаёт само приложение по /media.
+    media_base_url: str = ""
 
 
 class SettingsWrite(BaseModel):
