@@ -33,6 +33,23 @@ class StorageConfig:
     secret_key: str
     public_url: str
 
+    def __post_init__(self) -> None:
+        """Приводит адрес хранилища к тому виду, которого ждёт клиент S3.
+
+        В панели Cloudflare R2 рядом с бакетом показан адрес вместе с его
+        именем: `https://<аккаунт>.r2.cloudflarestorage.com/<бакет>`. Скопировав
+        его как есть, человек получает удвоение — клиент добавляет имя бакета
+        сам, и запись уходит на `/<бакет>/<бакет>/файл`. Ошибка при этом
+        невнятная, поэтому лишнее имя срезаем молча.
+        """
+
+        self.endpoint_url = self.endpoint_url.strip().rstrip("/")
+        self.public_url = self.public_url.strip().rstrip("/")
+        self.bucket = self.bucket.strip()
+
+        if self.bucket and self.endpoint_url.endswith(f"/{self.bucket}"):
+            self.endpoint_url = self.endpoint_url[: -len(f"/{self.bucket}")]
+
     @property
     def configured(self) -> bool:
         return bool(self.bucket)

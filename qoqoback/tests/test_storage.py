@@ -123,3 +123,22 @@ def test_database_settings_win_over_environment(monkeypatch: pytest.MonkeyPatch)
 
     monkeypatch.setattr("app.db.session.SessionLocal", FakeSession)
     assert storage.resolve_config().bucket == "из-базы"
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "expected"),
+    [
+        # Панель Cloudflare R2 показывает адрес вместе с именем бакета —
+        # скопированный как есть, он давал путь /albina/albina/файл.
+        ("https://acc.r2.cloudflarestorage.com/albina", "https://acc.r2.cloudflarestorage.com"),
+        ("https://acc.r2.cloudflarestorage.com/albina/", "https://acc.r2.cloudflarestorage.com"),
+        ("https://acc.r2.cloudflarestorage.com", "https://acc.r2.cloudflarestorage.com"),
+        # Чужое имя в пути не наше дело: у MinIO так бывает законно.
+        (
+            "https://acc.r2.cloudflarestorage.com/other",
+            "https://acc.r2.cloudflarestorage.com/other",
+        ),
+    ],
+)
+def test_bucket_name_is_stripped_from_endpoint(endpoint: str, expected: str) -> None:
+    assert config(bucket="albina", endpoint_url=endpoint).endpoint_url == expected
