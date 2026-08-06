@@ -334,7 +334,6 @@ export const kk: Dictionary = {
     presets: {
       week: '7 күн',
       month: '30 күн',
-      prevMonth: 'Өткен ай',
       quarter: 'Тоқсан',
       year: 'Жыл',
     },

@@ -351,7 +351,6 @@ export const ru = {
     presets: {
       week: '7 дней',
       month: '30 дней',
-      prevMonth: 'Прошлый месяц',
       quarter: 'Квартал',
       year: 'Год',
     },

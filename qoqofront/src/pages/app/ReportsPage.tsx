@@ -89,16 +89,6 @@ const PRESETS: { key: PresetKey; range: () => [Date, Date]; group: PeriodGroup }
     },
   },
   {
-    key: 'prevMonth',
-    group: 'day',
-    range: () => {
-      const today = new Date()
-      const from = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-      const to = new Date(today.getFullYear(), today.getMonth(), 0)
-      return [from, to]
-    },
-  },
-  {
     key: 'quarter',
     group: 'week',
     range: () => {
