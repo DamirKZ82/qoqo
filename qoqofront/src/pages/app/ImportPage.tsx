@@ -20,7 +20,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 
 import { api, errorMessage } from '../../api/client'
@@ -71,6 +71,39 @@ export function ImportPage() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [done, setDone] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+
+  // Состав колонок для выбранного вида — нужен до выбора файла.
+  const { data: columns } = useQuery({
+    queryKey: ['imports', 'columns', kind],
+    queryFn: async () => (await api.get<Column[]>(`/imports/columns/${kind}`)).data,
+  })
+
+  /**
+   * Скачивание образца.
+   *
+   * Через API, а не обычной ссылкой: ссылка вида «/api/v1/…» уходит на домен
+   * сайта, где такого пути нет, и правило SPA-роутинга отдаёт index.html —
+   * вместо образца скачивался пустой html. Заодно так уходит и токен: ссылка
+   * заголовков не несёт.
+   */
+  async function downloadTemplate() {
+    setDownloading(true)
+    setError(null)
+    try {
+      const response = await api.get(`/imports/template/${kind}`, { responseType: 'blob' })
+      const url = URL.createObjectURL(response.data as Blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `qoqo-${kind}-образец.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(errorMessage(err, 'Не удалось скачать образец'))
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   const upload = useMutation({
     mutationFn: async (target: 'preview' | 'apply') => {
@@ -157,8 +190,8 @@ export function ImportPage() {
               </Button>
               <Button
                 startIcon={<DownloadIcon />}
-                href={`/api/v1/imports/template/${kind}`}
-                download
+                onClick={() => void downloadTemplate()}
+                disabled={downloading}
               >
                 Скачать образец
               </Button>
@@ -182,10 +215,12 @@ export function ImportPage() {
 
             <Box>
               <Typography variant="caption" color="text.secondary">
-                Колонки: {current.label === 'Начальные остатки' ? '' : ''}
+                Колонки. Выделенные обязательны:
               </Typography>
               <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                {(preview?.columns ?? []).map((column) => (
+                {/* Состав берём у сервера сразу: раньше он появлялся только
+                    после разбора файла, то есть когда ошибку уже совершили. */}
+                {(preview?.columns ?? columns ?? []).map((column) => (
                   <Chip
                     key={column.key}
                     size="small"

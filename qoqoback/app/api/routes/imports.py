@@ -131,8 +131,19 @@ def list_kinds() -> list[dict]:
     ]
 
 
+@router.get("/columns/{kind}", response_model=list[ColumnInfo])
+def list_columns(kind: ImportKind, _: CurrentUser) -> list[ColumnInfo]:
+    """Колонки, которые ждёт загрузка.
+
+    Нужны до выбора файла: иначе человек узнаёт состав, только скачав образец
+    или получив ошибки разбора.
+    """
+
+    return COLUMNS[kind]
+
+
 @router.get("/template/{kind}")
-def download_template(kind: ImportKind) -> StreamingResponse:
+def download_template(kind: ImportKind, _: CurrentUser) -> StreamingResponse:
     """Пустой файл-образец со всеми колонками.
 
     Разделитель «;» и BOM — иначе Excel открывает кириллицу кракозябрами.
