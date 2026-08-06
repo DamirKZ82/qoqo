@@ -170,7 +170,7 @@ function ImageField({
               component="img"
               src={mediaUrl(url)}
               alt={label}
-              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           ) : (
             <PhotoIcon color="disabled" />

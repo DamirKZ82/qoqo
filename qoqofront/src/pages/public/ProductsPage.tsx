@@ -64,7 +64,9 @@ function ProductCard({ product }: { product: CatalogProduct }) {
               src={фото}
               alt={текст.name}
               loading="lazy"
-              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              // Вписываем целиком, а не заполняем кадр: у товара важна
+              // упаковка, а обрезка съедает как раз её края.
+              sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 1 }}
             />
           ) : (
             // Без фотографии карточка не должна ломать сетку: держим ту же

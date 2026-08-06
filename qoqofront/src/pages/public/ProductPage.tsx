@@ -73,7 +73,7 @@ export function ProductPage() {
                   component="img"
                   src={фото}
                   alt={текст.name}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 2 }}
                 />
               ) : (
                 <Typography color="text.secondary">{t.products.noPhoto}</Typography>
