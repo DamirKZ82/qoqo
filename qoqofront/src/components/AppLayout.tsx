@@ -44,6 +44,7 @@ import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-rout
 import type { UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useT, type Dictionary } from '../i18n'
+import { APP_SHELL_CLASS } from '../theme'
 import { Logo } from './Logo'
 import { OfflineBar } from './OfflineBar'
 import { TelegramLink } from './TelegramLink'
@@ -285,7 +286,10 @@ export function AppLayout() {
   )
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      className={APP_SHELL_CLASS}
+      sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}
+    >
       {!isMobile && (
         <Drawer
           variant="permanent"

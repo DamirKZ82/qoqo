@@ -1,3 +1,4 @@
+import type { CSSObject, Theme } from '@mui/material/styles'
 import { createTheme } from '@mui/material/styles'
 
 // Фирменная палитра QoQo из брендбука.
@@ -16,6 +17,54 @@ export const brand = {
   cream: '#F6F3E9',
   ink: '#333333',
 } as const
+
+/**
+ * Бумажные стикеры рабочей области.
+ *
+ * Карточки и диалоги внутри системы окрашены как бумага, а не как белый лист
+ * экрана: жёлтый взят приглушённый, матовый — на нём весь день читают цифры, и
+ * насыщенный цвет к вечеру утомляет. Сайт это не затрагивает: там своё
+ * оформление, стикеры уместны только за рабочим столом.
+ */
+export const note = {
+  light: {
+    bg: '#FAF4DB',
+    border: 'rgba(184, 148, 42, 0.32)',
+    shadow: '0 1px 2px rgba(93, 74, 20, 0.07)',
+  },
+  dark: {
+    bg: '#23201A',
+    border: 'rgba(212, 175, 55, 0.22)',
+    shadow: '0 1px 2px rgba(0, 0, 0, 0.35)',
+  },
+} as const
+
+/** Класс на корне рабочей области. По нему стикеры отличают систему от сайта. */
+export const APP_SHELL_CLASS = 'qoqo-app'
+
+/**
+ * Стиль листка для карточек рабочей области.
+ *
+ * Тёмная ветка вложена внутрь селектора, а не надета сверху: класс темы висит
+ * на <html>, и снаружи он оказался бы правее класса рабочей области.
+ */
+function stickyNote({ theme: current }: { theme: Theme }): CSSObject {
+  return {
+    [`.${APP_SHELL_CLASS} &`]: {
+      backgroundColor: note.light.bg,
+      borderColor: note.light.border,
+      boxShadow: note.light.shadow,
+      // Тёмная тема осветляет Paper плёнкой по высоте тени — поверх листка она
+      // даёт серый налёт.
+      backgroundImage: 'none',
+      ...current.applyStyles('dark', {
+        backgroundColor: note.dark.bg,
+        borderColor: note.dark.border,
+        boxShadow: note.dark.shadow,
+      }),
+    },
+  }
+}
 
 /**
  * Цвета столбцов графика — отдельно для каждой темы.
@@ -132,6 +181,25 @@ export const theme = createTheme({
     },
     MuiCard: {
       defaultProps: { variant: 'outlined' },
+      styleOverrides: { root: stickyNote },
+    },
+    MuiAccordion: {
+      // Список ошибок выложен раскрывающимися блоками, а не карточками. Для
+      // глаза это те же листки, поэтому и цвет им тот же.
+      styleOverrides: { root: stickyNote },
+    },
+    MuiDialog: {
+      // Диалоги живут в отдельном узле страницы, до них класс рабочей области
+      // не достаёт. Красим без него: диалогов на сайте нет.
+      styleOverrides: {
+        paper: ({ theme: current }) => ({
+          backgroundColor: note.light.bg,
+          // Тёмная тема подмешивает Paper светлую плёнку по высоте тени —
+          // поверх стикера она даёт серый налёт.
+          backgroundImage: 'none',
+          ...current.applyStyles('dark', { backgroundColor: note.dark.bg }),
+        }),
+      },
     },
     MuiChip: {
       styleOverrides: { root: { fontWeight: 600 } },
