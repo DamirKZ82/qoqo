@@ -43,41 +43,33 @@ export const note = {
 } as const
 
 /**
- * Листок бокового меню — бледно-зелёный.
- *
- * Меню не содержимое, а навигация, и цветом отделено от жёлтых карточек: глаз
- * сразу видит, где кончается «что смотрю» и начинается «куда идти». Зелень
- * взята фирменная, разбавленная почти до белого, — иначе меню перетягивало бы
- * внимание на себя весь день.
- */
-export const sideNote = {
-  light: {
-    bg: '#E8F1EA',
-    border: 'rgba(0, 83, 59, 0.16)',
-    shadow: '0 1px 2px rgba(0, 60, 42, 0.06)',
-  },
-  dark: {
-    bg: '#1B241F',
-    border: 'rgba(92, 199, 156, 0.16)',
-    shadow: '0 1px 2px rgba(0, 0, 0, 0.35)',
-  },
-} as const
-
-/**
- * Зелёный листок для панели бокового меню.
+ * Панель бокового меню — фирменная зелень, та же, что на главной сайта.
  *
  * Отдельной функцией, а не правилом темы: шторку меню рисует и сайт, а красить
- * его в цвета системы незачем.
+ * её в цвета системы незачем.
+ *
+ * Вместе с фоном приходится переопределять и содержимое: значки, подзаголовки
+ * групп и разделители берут свой цвет из палитры, рассчитанной на светлую
+ * подложку, и на зелени превращаются в грязь. Наследовать от панели их
+ * заставляем поимённо.
  */
-export function sideNotePaper(current: Theme): CSSObject {
+export function sidePanelPaper(current: Theme): CSSObject {
   return {
-    backgroundColor: sideNote.light.bg,
-    borderColor: sideNote.light.border,
+    backgroundColor: brand.green,
     backgroundImage: 'none',
-    ...current.applyStyles('dark', {
-      backgroundColor: sideNote.dark.bg,
-      borderColor: sideNote.dark.border,
-    }),
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    color: '#FFFFFF',
+    '& .MuiListItemIcon-root': { color: 'inherit', opacity: 0.85 },
+    '& .MuiListSubheader-root': { color: 'rgba(255, 255, 255, 0.62)' },
+    '& .MuiDivider-root': { borderColor: 'rgba(255, 255, 255, 0.12)' },
+    '& .MuiListItemButton-root': {
+      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.08)' },
+      '&.Mui-selected': {
+        backgroundColor: 'rgba(255, 255, 255, 0.16)',
+        '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.22)' },
+      },
+    },
+    ...current.applyStyles('dark', { backgroundColor: brand.greenDark }),
   }
 }
 

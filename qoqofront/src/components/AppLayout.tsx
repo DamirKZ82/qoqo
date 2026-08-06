@@ -44,7 +44,7 @@ import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-rout
 import type { UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useT, type Dictionary } from '../i18n'
-import { APP_SHELL_CLASS, sideNotePaper } from '../theme'
+import { APP_SHELL_CLASS, sidePanelPaper } from '../theme'
 import { Logo } from './Logo'
 import { OfflineBar } from './OfflineBar'
 import { TelegramLink } from './TelegramLink'
@@ -251,8 +251,10 @@ export function AppLayout() {
         <>
           <Box sx={{ p: 2 }}>
             {/* Логотип ведёт на сайт: это его привычное поведение в шапке. */}
+            {/* Панель зелёная в обеих темах, поэтому вариант логотипа задаём
+                явно: сам он ориентируется на тему, а не на подложку. */}
             <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
-              <Logo height={40} />
+              <Logo height={40} dark />
             </Box>
           </Box>
           <Divider />
@@ -400,7 +402,7 @@ export function AppLayout() {
                 // Скруглён только внутренний угол: остальные три упираются в
                 // край окна, и округлять их не во что.
                 borderTopRightRadius: 16,
-                ...sideNotePaper(current),
+                ...sidePanelPaper(current),
               },
             })}
           >
@@ -412,7 +414,7 @@ export function AppLayout() {
           <Drawer
             open={drawerOpen}
             onClose={() => setDrawerOpen(false)}
-            sx={(current) => ({ '& .MuiDrawer-paper': sideNotePaper(current) })}
+            sx={(current) => ({ '& .MuiDrawer-paper': sidePanelPaper(current) })}
           >
             {menu}
           </Drawer>
