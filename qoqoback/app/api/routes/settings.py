@@ -1,3 +1,4 @@
+import contextlib
 import uuid
 from typing import Any
 
@@ -252,9 +253,9 @@ def update_storage_settings(
 def test_storage(_: Any = admin_only) -> StorageTestResult:
     """Кладёт в бакет пробный файл и сразу убирает его.
 
-    Проверять чтением нельзя: пустой бакет ответит тем же, что и неверный
-    ключ, — а нам нужно знать, что запись работает. Именно записи и не хватает,
-    когда фотографии товаров молча пропадают.
+    Проверяются обе стороны: запись ключами и чтение так, как это делает
+    браузер. Успешной записи мало — у Cloudflare R2 бакеты закрыты по
+    умолчанию, и фотографии не откроются, хотя загрузка прошла.
     """
 
     config = storage.resolve_config()
@@ -265,8 +266,40 @@ def test_storage(_: Any = admin_only) -> StorageTestResult:
     try:
         клиент = storage.client(config)
         клиент.put_object(Bucket=config.bucket, Key=ключ, Body=b"qoqo", ContentType="text/plain")
-        клиент.delete_object(Bucket=config.bucket, Key=ключ)
     except Exception as exc:
-        return StorageTestResult(ok=False, detail=f"{type(exc).__name__}: {exc}"[:400])
+        return StorageTestResult(
+            ok=False, detail=f"Записать не удалось. {type(exc).__name__}: {exc}"[:400]
+        )
 
-    return StorageTestResult(ok=True, detail=f"Запись и удаление прошли. Файлы: {config.base_url}")
+    читается, причина = _readable(f"{config.base_url}/{ключ}")
+    with contextlib.suppress(Exception):
+        клиент.delete_object(Bucket=config.bucket, Key=ключ)
+
+    if not читается:
+        return StorageTestResult(
+            ok=False,
+            detail=(
+                f"Запись прошла, но браузер файл не прочитает ({причина}). "
+                "Откройте бакету публичный доступ и укажите «Адрес для браузера»: "
+                "адрес хранилища для чтения не годится, он требует подписи."
+            ),
+        )
+
+    return StorageTestResult(ok=True, detail=f"Запись и чтение прошли. Файлы: {config.base_url}")
+
+
+def _readable(url: str) -> tuple[bool, str]:
+    """Отдаётся ли файл обычным запросом, как из браузера.
+
+    Одной записи мало: у Cloudflare R2 бакеты закрыты по умолчанию, и картинки
+    не откроются, хотя загрузка прошла. Проверка, отвечающая «всё хорошо» после
+    успешной записи, вводила бы в заблуждение ровно там, где нужна точность.
+    """
+
+    import httpx
+
+    try:
+        r = httpx.get(url, timeout=15, follow_redirects=True)
+    except Exception as exc:
+        return False, type(exc).__name__
+    return r.status_code == 200, f"ответ {r.status_code}"
