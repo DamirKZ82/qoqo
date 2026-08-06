@@ -106,7 +106,16 @@ export function errorMessage(error: unknown, fallback?: string): string {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail
     if (typeof detail === 'string') return detail
-    if (Array.isArray(detail) && detail[0]?.msg) return String(detail[0].msg)
+
+    // Проверка полей от FastAPI: в loc лежит путь до поля, а в msg — причина.
+    // Без имени поля сообщение вида «Input should be a valid integer» не
+    // говорит, где искать, и человек ищет ошибку не в том месте.
+    if (Array.isArray(detail) && detail[0]?.msg) {
+      const first = detail[0] as { msg?: string; loc?: unknown[] }
+      const поле = Array.isArray(first.loc) ? first.loc[first.loc.length - 1] : undefined
+      return поле ? `${String(поле)}: ${first.msg}` : String(first.msg)
+    }
+
     if (error.code === 'ERR_NETWORK') return messages.network
   }
   return fallback ?? messages.generic

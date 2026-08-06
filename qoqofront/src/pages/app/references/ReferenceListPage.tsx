@@ -212,8 +212,11 @@ export function ReferenceListPage() {
       if (field.type === 'checkbox') {
         payload[field.name] = Boolean(raw)
       } else if (raw === '' || raw === undefined) {
-        // Пустая строка для ссылки и числа означает «не задано».
-        payload[field.name] = null
+        // Пустое число не отправляем вовсе, а не как null: у одних полей на
+        // сервере ноль по умолчанию, у других — «не задано», и решать это
+        // должен сервер. Прежде летел null, и «Порядок», оставленный пустым,
+        // ронял сохранение с невнятным «Input should be a valid integer».
+        if (field.type !== 'number') payload[field.name] = null
       } else if (field.type === 'number') {
         payload[field.name] = Number(raw)
       } else {
