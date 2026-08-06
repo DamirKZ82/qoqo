@@ -12,6 +12,7 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import MenuItem from '@mui/material/MenuItem'
@@ -375,41 +376,55 @@ function DocumentsTab() {
         </Card>
       )}
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+      {/* Документ заполняют так же, как заявку, и места ему нужно столько же:
+          позиции с количеством и ценой в узком окошке не помещались. */}
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="md"
+        sx={{ '& .MuiDialog-paper': { m: { xs: 1, sm: 4 }, width: { xs: 'calc(100% - 16px)' } } }}
+      >
         <DialogTitle>Новый складской документ</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
 
-            <TextField
-              select
-              label="Вид документа"
-              value={type}
-              onChange={(event) => setType(event.target.value as DocumentType)}
-              helperText={CREATABLE.find((item) => item.value === type)?.hint}
-              fullWidth
-            >
-              {CREATABLE.map((item) => (
-                <MenuItem key={item.value} value={item.value}>
-                  {item.label}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                select
+                label="Вид документа"
+                value={type}
+                onChange={(event) => setType(event.target.value as DocumentType)}
+                helperText={CREATABLE.find((item) => item.value === type)?.hint}
+                fullWidth
+              >
+                {CREATABLE.map((item) => (
+                  <MenuItem key={item.value} value={item.value}>
+                    {item.label}
+                  </MenuItem>
+                ))}
+              </TextField>
 
-            <TextField
-              select
-              label="Склад"
-              value={warehouseId}
-              onChange={(event) => setWarehouseId(event.target.value)}
-              required
-              fullWidth
-            >
-              {warehouses?.items.map((item) => (
-                <MenuItem key={item.id} value={item.id}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </TextField>
+              <TextField
+                select
+                label="Склад"
+                value={warehouseId}
+                onChange={(event) => setWarehouseId(event.target.value)}
+                required
+                fullWidth
+              >
+                {warehouses?.items.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+
+            <Divider />
+
+            <Typography variant="h6">Позиции</Typography>
 
             <Autocomplete
               options={products?.items ?? []}
@@ -421,47 +436,75 @@ function DocumentsTab() {
               renderInput={(params) => <TextField {...params} label="Добавить позицию" />}
             />
 
+            {lines.length === 0 && (
+              <Typography color="text.secondary" variant="body2">
+                Позиции не добавлены.
+              </Typography>
+            )}
+
             {lines.map((line) => (
-              <Stack key={line.key} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ flexGrow: 1, minWidth: 0 }} noWrap>
-                  {line.name}
-                </Typography>
-                <TextField
-                  label={type === 'inventory' ? 'Факт' : 'Кол-во'}
-                  type="number"
-                  value={line.quantity}
-                  onChange={(event) =>
-                    setLines((current) =>
-                      current.map((item) =>
-                        item.key === line.key ? { ...item, quantity: event.target.value } : item,
-                      ),
-                    )
-                  }
-                  sx={{ width: 110 }}
-                  slotProps={{ htmlInput: { min: 0, step: '0.001' } }}
-                />
-                <TextField
-                  label="Цена"
-                  type="number"
-                  value={line.price}
-                  onChange={(event) =>
-                    setLines((current) =>
-                      current.map((item) =>
-                        item.key === line.key ? { ...item, price: event.target.value } : item,
-                      ),
-                    )
-                  }
-                  sx={{ width: 120 }}
-                  slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
-                />
-                <IconButton
-                  onClick={() => setLines((current) => current.filter((i) => i.key !== line.key))}
-                  aria-label="Удалить"
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Stack>
+              <Box key={line.key}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {line.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatMoney(Number(line.quantity || 0) * Number(line.price || 0))}
+                    </Typography>
+                  </Box>
+                  <TextField
+                    label={type === 'inventory' ? 'Факт' : 'Кол-во'}
+                    type="number"
+                    value={line.quantity}
+                    onChange={(event) =>
+                      setLines((current) =>
+                        current.map((item) =>
+                          item.key === line.key ? { ...item, quantity: event.target.value } : item,
+                        ),
+                      )
+                    }
+                    sx={{ width: 100 }}
+                    slotProps={{ htmlInput: { min: 0, step: '0.001' } }}
+                  />
+                  <TextField
+                    label="Цена"
+                    type="number"
+                    value={line.price}
+                    onChange={(event) =>
+                      setLines((current) =>
+                        current.map((item) =>
+                          item.key === line.key ? { ...item, price: event.target.value } : item,
+                        ),
+                      )
+                    }
+                    sx={{ width: 120 }}
+                    slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
+                  />
+                  <IconButton
+                    onClick={() => setLines((current) => current.filter((i) => i.key !== line.key))}
+                    aria-label="Удалить"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Stack>
+                <Divider sx={{ mt: 1.5 }} />
+              </Box>
             ))}
+
+            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+              <Typography variant="h6">Итого</Typography>
+              <Typography variant="h6" color="primary">
+                {formatMoney(
+                  lines.reduce(
+                    (sum, line) => sum + Number(line.quantity || 0) * Number(line.price || 0),
+                    0,
+                  ),
+                )}
+              </Typography>
+            </Stack>
+
+            <Divider />
 
             <TextField
               label="Комментарий"
