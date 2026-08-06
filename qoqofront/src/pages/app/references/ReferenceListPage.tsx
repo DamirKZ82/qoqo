@@ -1,5 +1,6 @@
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
+import PhotoIcon from '@mui/icons-material/Photo'
 import SearchIcon from '@mui/icons-material/Search'
 import StorefrontIcon from '@mui/icons-material/Storefront'
 import Alert from '@mui/material/Alert'
@@ -28,10 +29,10 @@ import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 
-import { api, errorMessage } from '../../../api/client'
+import { api, errorMessage, mediaUrl } from '../../../api/client'
 import { useReference, useSaveReference } from '../../../api/queries'
 import type { OkeiUnit, ReferenceItem } from '../../../api/types'
 import { useAuth } from '../../../auth/AuthContext'
@@ -124,6 +125,96 @@ function OkeiPicker({ onPick }: { onPick: (unit: OkeiUnit) => void }) {
       )}
       fullWidth
     />
+  )
+}
+
+
+/** Фотография записи: показ, замена, подсказка о порядке действий. */
+function ImageField({
+  label,
+  url,
+  disabled,
+  onUpload,
+}: {
+  label: string
+  url: string | null
+  disabled?: boolean
+  onUpload: (file: File) => Promise<void>
+}) {
+  const t = useT()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mt: 0.5 }}>
+        <Box
+          sx={{
+            width: 96,
+            height: 72,
+            borderRadius: 1,
+            bgcolor: 'action.hover',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          {url ? (
+            <Box
+              component="img"
+              src={mediaUrl(url)}
+              alt={label}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <PhotoIcon color="disabled" />
+          )}
+        </Box>
+
+        <Box>
+          <Button size="small" disabled={disabled || busy} onClick={() => inputRef.current?.click()}>
+            {url ? t.settings.replace : t.settings.upload}
+          </Button>
+          {disabled && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              {t.references.saveFirst}
+            </Typography>
+          )}
+          {error && (
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {error}
+            </Typography>
+          )}
+        </Box>
+      </Stack>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+        onChange={async (event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (!file) return
+          setBusy(true)
+          setError(null)
+          try {
+            await onUpload(file)
+          } catch (err) {
+            setError(errorMessage(err))
+          } finally {
+            setBusy(false)
+          }
+        }}
+      />
+    </Box>
   )
 }
 
@@ -392,6 +483,46 @@ export function ReferenceListPage() {
                         okei_code: unit.code,
                       }))
                     }
+                  />
+                )
+              }
+
+              if (field.type === 'image') {
+                return (
+                  <ImageField
+                    key={field.name}
+                    label={field.label}
+                    url={value ? String(value) : null}
+                    // Фотографию отправляем сразу, не дожидаясь «Сохранить»:
+                    // файл нельзя положить в тело обычного JSON, а заводить
+                    // ради него черновик записи — лишняя сущность.
+                    disabled={!editing?.id}
+                    onUpload={async (file) => {
+                      const body = new FormData()
+                      body.append('file', file)
+                      const { data } = await api.post<{ image_url: string | null }>(
+                        `/catalog/${editing?.id}/image`,
+                        body,
+                      )
+                      setValues((current) => ({ ...current, image_url: data.image_url }))
+                    }}
+                  />
+                )
+              }
+
+              if (field.type === 'multiline') {
+                return (
+                  <TextField
+                    key={field.name}
+                    label={field.label}
+                    value={value ?? ''}
+                    onChange={(event) =>
+                      setValues((current) => ({ ...current, [field.name]: event.target.value }))
+                    }
+                    helperText={field.helperText}
+                    multiline
+                    minRows={3}
+                    fullWidth
                   />
                 )
               }

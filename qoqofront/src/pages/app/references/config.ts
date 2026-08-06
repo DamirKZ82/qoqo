@@ -4,7 +4,17 @@ import type { Dictionary } from '../../../i18n'
 export interface FieldConfig {
   name: string
   label: string
-  type?: 'text' | 'number' | 'checkbox' | 'date' | 'ref' | 'color' | 'url' | 'okei'
+  type?:
+    | 'text'
+    | 'number'
+    | 'checkbox'
+    | 'date'
+    | 'ref'
+    | 'color'
+    | 'url'
+    | 'okei'
+    | 'multiline'
+    | 'image'
   /** Ресурс API для выбора значения, если type === 'ref'. */
   refResource?: string
   /** Отбор для списка значений: например, только торговые представители. */
@@ -100,6 +110,21 @@ export function buildReferences(t: Dictionary): ReferenceConfig[] {
       { name: 'vat_rate', label: t.fields.vatRate, type: 'number' },
       { name: 'is_weight_goods', label: t.fields.isWeightGoods, type: 'checkbox' },
       { name: 'barcode', label: t.fields.barcode },
+      // Витрина на сайте. Номенклатура и карточка товара — одно и то же:
+      // отдельный справочник ради витрины пришлось бы вести параллельно.
+      {
+        name: 'is_published',
+        label: t.fields.isPublished,
+        type: 'checkbox',
+        helperText: t.fields.isPublishedHint,
+        inList: true,
+      },
+      { name: 'image_url', label: t.fields.photo, type: 'image' },
+      { name: 'description', label: t.fields.description, type: 'multiline' },
+      { name: 'composition', label: t.fields.composition, type: 'multiline' },
+      { name: 'pack', label: t.fields.pack },
+      { name: 'shelf_life', label: t.fields.shelfLife },
+      { name: 'storage', label: t.fields.storage },
     ],
   },
   {

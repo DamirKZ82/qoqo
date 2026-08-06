@@ -1,9 +1,10 @@
 import uuid
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Uuid
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Text, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -102,6 +103,26 @@ class Nomenclature(ReferenceMixin, Base):
     is_weight_goods: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal(0), nullable=False)
     vat_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal(12), nullable=False)
+
+    # --- Витрина на сайте -------------------------------------------------
+    #
+    # Номенклатура и карточка товара на сайте — одно и то же: заводить второй
+    # справочник ради витрины значило бы вести один товар в двух местах и
+    # однажды их рассинхронизировать.
+
+    # Показывать на сайте. По умолчанию нет: в номенклатуре есть служебные
+    # позиции, которым на витрине не место.
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    # Человекочитаемый адрес карточки: /products/bedro-ohlazhdennoe.
+    slug: Mapped[str | None] = mapped_column(String(200), unique=True, index=True)
+    image_url: Mapped[str | None] = mapped_column(String(500))
+    description: Mapped[str | None] = mapped_column(Text)
+    composition: Mapped[str | None] = mapped_column(Text)
+    shelf_life: Mapped[str | None] = mapped_column(String(200))
+    storage: Mapped[str | None] = mapped_column(String(300))
+    pack: Mapped[str | None] = mapped_column(String(200))
+    # Казахские варианты названия и текстов — сайт двуязычный.
+    translations: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
 
     category: Mapped["ProductCategory | None"] = relationship()
     base_unit: Mapped["UnitOfMeasure | None"] = relationship()

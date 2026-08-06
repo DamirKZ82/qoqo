@@ -3,6 +3,7 @@ import CallIcon from '@mui/icons-material/Call'
 import EcoIcon from '@mui/icons-material/Spa'
 import EmailIcon from '@mui/icons-material/Email'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import LoginIcon from '@mui/icons-material/Login'
 import MenuIcon from '@mui/icons-material/Menu'
 import PlaceIcon from '@mui/icons-material/Place'
@@ -301,6 +302,20 @@ export function LandingPage() {
                   </CardContent>
                 </Card>
               ))}
+            </Box>
+
+            {/* Блок на главной показывает группы, а не товары: за подробностями
+                — на страницу продукции, где у каждой позиции своя карточка. */}
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Button
+                component={RouterLink}
+                to="/products"
+                variant="outlined"
+                size="large"
+                endIcon={<ArrowForwardIcon />}
+              >
+                {t.products.title}
+              </Button>
             </Box>
           </Container>
         </Box>

@@ -298,3 +298,28 @@ export interface OkeiUnit {
   name: string
   group: string
 }
+
+/** Карточка товара для витрины сайта. Цен и остатков здесь нет намеренно. */
+export interface CatalogProduct {
+  id: string
+  slug: string | null
+  name: string
+  full_name: string | null
+  description: string | null
+  composition: string | null
+  shelf_life: string | null
+  storage: string | null
+  pack: string | null
+  image_url: string | null
+  unit_name: string | null
+  category_id: string | null
+  category_name: string | null
+  translations: Record<string, Record<string, string>>
+}
+
+export interface CatalogGroup {
+  id: string | null
+  name: string
+  sort_order: number
+  products: CatalogProduct[]
+}

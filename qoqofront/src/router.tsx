@@ -21,12 +21,16 @@ import { WarehousePage } from './pages/app/WarehousePage'
 import { ReferenceListPage } from './pages/app/references/ReferenceListPage'
 import { ReferencesIndexPage } from './pages/app/references/ReferencesIndexPage'
 import { LandingPage } from './pages/public/LandingPage'
+import { ProductPage } from './pages/public/ProductPage'
+import { ProductsPage } from './pages/public/ProductsPage'
 import { PrintPage } from './pages/print/PrintPage'
 import { LoginPage } from './pages/public/LoginPage'
 import { SetPasswordPage } from './pages/public/SetPasswordPage'
 
 export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
+  { path: '/products', element: <ProductsPage /> },
+  { path: '/products/:slug', element: <ProductPage /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/set-password', element: <SetPasswordPage /> },
   {

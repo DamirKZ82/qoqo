@@ -111,6 +111,14 @@ class NomenclatureWrite(ReferenceBase):
     is_weight_goods: bool = True
     price: Decimal = Decimal(0)
     vat_rate: Decimal = Decimal(12)
+    # Витрина на сайте.
+    is_published: bool = False
+    slug: str | None = Field(default=None, max_length=200)
+    description: str | None = None
+    composition: str | None = None
+    shelf_life: str | None = Field(default=None, max_length=200)
+    storage: str | None = Field(default=None, max_length=300)
+    pack: str | None = Field(default=None, max_length=200)
 
 
 class NomenclatureRead(ReferenceRead):
@@ -124,6 +132,14 @@ class NomenclatureRead(ReferenceRead):
     vat_rate: Decimal
     category_name: str | None = None
     unit_name: str | None = None
+    is_published: bool
+    slug: str | None
+    image_url: str | None
+    description: str | None
+    composition: str | None
+    shelf_life: str | None
+    storage: str | None
+    pack: str | None
 
 
 # --- Контрагент ----------------------------------------------------------
