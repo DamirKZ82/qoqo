@@ -44,7 +44,7 @@ import { Link as RouterLink, Outlet, useLocation, useNavigate } from 'react-rout
 import type { UserRole } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { useT, type Dictionary } from '../i18n'
-import { APP_SHELL_CLASS } from '../theme'
+import { APP_SHELL_CLASS, sideNotePaper } from '../theme'
 import { Logo } from './Logo'
 import { OfflineBar } from './OfflineBar'
 import { TelegramLink } from './TelegramLink'
@@ -215,6 +215,10 @@ export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [telegramOpen, setTelegramOpen] = useState(false)
 
+  // Высота верхней полосы нужна дважды: ею же отодвигается вниз боковое меню,
+  // потому что его панель прибита к окну, а не встроена в поток страницы.
+  const HEADER_HEIGHT = isMobile ? 56 : 64
+
   const visible = navItems(t).filter(
     (item) => !item.roles || (user && item.roles.includes(user.role)),
   )
@@ -241,13 +245,19 @@ export function AppLayout() {
 
   const menu = (
     <Box sx={{ width: 264, display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ p: 2 }}>
-        {/* Логотип ведёт на сайт: это его привычное поведение в шапке. */}
-        <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
-          <Logo height={44} />
-        </Box>
-      </Box>
-      <Divider />
+      {/* На большом экране логотип живёт в верхней полосе. На телефоне шторка
+          закрывает её собой, и без логотипа теряется, чьё это меню. */}
+      {isMobile && (
+        <>
+          <Box sx={{ p: 2 }}>
+            {/* Логотип ведёт на сайт: это его привычное поведение в шапке. */}
+            <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
+              <Logo height={40} />
+            </Box>
+          </Box>
+          <Divider />
+        </>
+      )}
 
       <Box sx={{ flexGrow: 1, overflowY: 'auto', px: 1, py: 1 }}>
         {GROUPS.map((group) => {
@@ -288,136 +298,142 @@ export function AppLayout() {
   return (
     <Box
       className={APP_SHELL_CLASS}
-      sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+      }}
     >
-      {!isMobile && (
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: 264,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': { width: 264, boxSizing: 'border-box' },
-          }}
-        >
-          {menu}
-        </Drawer>
-      )}
+      {/* Одна полоса во всю ширину страницы. Раньше логотип сидел в отдельной
+          панельке над меню, и верх страницы был разрезан пополам вертикальной
+          линией: две шапки вместо одной. */}
+      <AppBar
+        position="sticky"
+        sx={{
+          // Меню прибито к окну и по умолчанию лежит выше шапки — без этого
+          // его панель наползала бы на полосу сверху.
+          zIndex: (current) => current.zIndex.drawer + 1,
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          borderRadius: '0 0 16px 16px',
+        }}
+      >
+        <Toolbar sx={{ gap: 1, minHeight: HEADER_HEIGHT, height: HEADER_HEIGHT }}>
+          {isMobile && (
+            <IconButton
+              edge="start"
+              // Снимаем фокус с кнопки: открытая шторка накрывает содержимое
+              // aria-hidden, а сфокусированный элемент под ним недопустим —
+              // на это ругаются и браузер, и программы чтения с экрана.
+              onClick={(event) => {
+                event.currentTarget.blur()
+                setDrawerOpen(true)
+              }}
+              aria-label={t.nav.menu}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
 
-      {isMobile && (
-        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-          {menu}
-        </Drawer>
-      )}
+          {/* Логотип ведёт на сайт: это его привычное поведение в шапке. */}
+          <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
+            <Logo height={isMobile ? 36 : 44} />
+          </Box>
 
-      <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ flexGrow: 1 }} />
+          <LanguageSwitch />
+          <ThemeToggle />
+
+          <Tooltip title={t.telegram.title}>
+            <IconButton onClick={() => setTelegramOpen(true)} size="small">
+              <TelegramIcon
+                fontSize="small"
+                // Привязан — красим в цвет самого телеграма, а не в
+                // фирменный зелёный: так значок читается как «связано с
+                // Telegram», а не как ещё один элемент нашего интерфейса.
+                sx={{ color: user?.telegram_linked ? TELEGRAM_BLUE : 'inherit' }}
+              />
+            </IconButton>
+          </Tooltip>
+
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', ml: 1 }}>
+            <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 13 }}>
+              {user ? initials(user.full_name) : '?'}
+            </Avatar>
+            {/* Имя на телефон не помещается — там только аватар. */}
+            {!isMobile && (
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" noWrap sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                  {user?.full_name}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" noWrap component="div">
+                  {user ? t.roles[user.role] : ''}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+
+          <Tooltip title={t.nav.logout}>
+            <IconButton onClick={handleLogout} size="small">
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Toolbar>
+      </AppBar>
+
+      <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
         {!isMobile && (
-          <AppBar
-            position="sticky"
-            sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+          <Drawer
+            variant="permanent"
+            sx={(current) => ({
+              width: 264,
+              flexShrink: 0,
+              '& .MuiDrawer-paper': {
+                width: 264,
+                boxSizing: 'border-box',
+                // Панель начинается под полосой, а не под верхом окна.
+                top: HEADER_HEIGHT,
+                height: 'auto',
+                bottom: 0,
+                // Скруглён только внутренний угол: остальные три упираются в
+                // край окна, и округлять их не во что.
+                borderTopRightRadius: 16,
+                ...sideNotePaper(current),
+              },
+            })}
           >
-            <Toolbar sx={{ gap: 1, minHeight: 56 }}>
-              <Box sx={{ flexGrow: 1 }} />
-              <LanguageSwitch />
-              <ThemeToggle />
-
-              <Tooltip title={t.telegram.title}>
-                <IconButton onClick={() => setTelegramOpen(true)} size="small">
-                  <TelegramIcon
-                    fontSize="small"
-                    // Привязан — красим в цвет самого телеграма, а не в
-                    // фирменный зелёный: так значок читается как «связано с
-                    // Telegram», а не как ещё один элемент нашего интерфейса.
-                    sx={{ color: user?.telegram_linked ? TELEGRAM_BLUE : 'inherit' }}
-                  />
-                </IconButton>
-              </Tooltip>
-
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', ml: 1 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 13 }}>
-                  {user ? initials(user.full_name) : '?'}
-                </Avatar>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="body2" noWrap sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-                    {user?.full_name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" noWrap component="div">
-                    {user ? t.roles[user.role] : ''}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Tooltip title={t.nav.logout}>
-                <IconButton onClick={handleLogout} size="small">
-                  <LogoutIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Toolbar>
-          </AppBar>
+            {menu}
+          </Drawer>
         )}
 
         {isMobile && (
-          <AppBar
-            position="sticky"
-            sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}
+          <Drawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            sx={(current) => ({ '& .MuiDrawer-paper': sideNotePaper(current) })}
           >
-            <Toolbar sx={{ gap: 1 }}>
-              <IconButton
-                edge="start"
-                // Снимаем фокус с кнопки: открытая шторка накрывает содержимое
-                // aria-hidden, а сфокусированный элемент под ним недопустим —
-                // на это ругаются и браузер, и программы чтения с экрана.
-                onClick={(event) => {
-                  event.currentTarget.blur()
-                  setDrawerOpen(true)
-                }}
-                aria-label={t.nav.menu}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Box component={RouterLink} to="/" sx={{ display: 'inline-flex' }}>
-                <Logo height={36} />
-              </Box>
-              <Box sx={{ flexGrow: 1 }} />
-              <LanguageSwitch />
-              <ThemeToggle />
-              {/* Имя на телефон не помещается — только значки и аватар. */}
-              <Tooltip title={t.telegram.title}>
-                <IconButton onClick={() => setTelegramOpen(true)} size="small">
-                  <TelegramIcon
-                    fontSize="small"
-                    // Привязан — красим в цвет самого телеграма, а не в
-                    // фирменный зелёный: так значок читается как «связано с
-                    // Telegram», а не как ещё один элемент нашего интерфейса.
-                    sx={{ color: user?.telegram_linked ? TELEGRAM_BLUE : 'inherit' }}
-                  />
-                </IconButton>
-              </Tooltip>
-              <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32, fontSize: 13 }}>
-                {user ? initials(user.full_name) : '?'}
-              </Avatar>
-              <Tooltip title={t.nav.logout}>
-                <IconButton onClick={handleLogout} size="small">
-                  <LogoutIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Toolbar>
-          </AppBar>
+            {menu}
+          </Drawer>
         )}
 
-        <OfflineBar />
+        <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <OfflineBar />
 
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: { xs: 2, md: 3 },
-            // Запас снизу, чтобы контент не уезжал под нижнюю панель на телефоне.
-            pb: isMobile ? 10 : 3,
-            maxWidth: 1400,
-            width: '100%',
-          }}
-        >
-          <Outlet />
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              p: { xs: 2, md: 3 },
+              // Запас снизу, чтобы контент не уезжал под нижнюю панель на телефоне.
+              pb: isMobile ? 10 : 3,
+              maxWidth: 1400,
+              width: '100%',
+            }}
+          >
+            <Outlet />
+          </Box>
         </Box>
       </Box>
 

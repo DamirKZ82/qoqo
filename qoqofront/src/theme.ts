@@ -28,16 +28,58 @@ export const brand = {
  */
 export const note = {
   light: {
-    bg: '#FAF4DB',
+    // Светлее бумаги и желтее её: цвет цыплёнка. Жёлтого прибавлено за счёт
+    // синевы, а не яркости, — иначе карточка сравнялась бы по светлоте с фоном
+    // и края бы пропали.
+    bg: '#FEF8D4',
     border: 'rgba(184, 148, 42, 0.32)',
     shadow: '0 1px 2px rgba(93, 74, 20, 0.07)',
   },
   dark: {
-    bg: '#23201A',
+    bg: '#2A261C',
     border: 'rgba(212, 175, 55, 0.22)',
     shadow: '0 1px 2px rgba(0, 0, 0, 0.35)',
   },
 } as const
+
+/**
+ * Листок бокового меню — бледно-зелёный.
+ *
+ * Меню не содержимое, а навигация, и цветом отделено от жёлтых карточек: глаз
+ * сразу видит, где кончается «что смотрю» и начинается «куда идти». Зелень
+ * взята фирменная, разбавленная почти до белого, — иначе меню перетягивало бы
+ * внимание на себя весь день.
+ */
+export const sideNote = {
+  light: {
+    bg: '#E8F1EA',
+    border: 'rgba(0, 83, 59, 0.16)',
+    shadow: '0 1px 2px rgba(0, 60, 42, 0.06)',
+  },
+  dark: {
+    bg: '#1B241F',
+    border: 'rgba(92, 199, 156, 0.16)',
+    shadow: '0 1px 2px rgba(0, 0, 0, 0.35)',
+  },
+} as const
+
+/**
+ * Зелёный листок для панели бокового меню.
+ *
+ * Отдельной функцией, а не правилом темы: шторку меню рисует и сайт, а красить
+ * его в цвета системы незачем.
+ */
+export function sideNotePaper(current: Theme): CSSObject {
+  return {
+    backgroundColor: sideNote.light.bg,
+    borderColor: sideNote.light.border,
+    backgroundImage: 'none',
+    ...current.applyStyles('dark', {
+      backgroundColor: sideNote.dark.bg,
+      borderColor: sideNote.dark.border,
+    }),
+  }
+}
 
 /** Класс на корне рабочей области. По нему стикеры отличают систему от сайта. */
 export const APP_SHELL_CLASS = 'qoqo-app'
