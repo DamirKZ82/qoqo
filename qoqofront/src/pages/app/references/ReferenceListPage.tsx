@@ -34,7 +34,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom'
 
 import { api, errorMessage, mediaUrl } from '../../../api/client'
 import { useReference, useSaveReference } from '../../../api/queries'
-import type { OkeiUnit, ReferenceItem } from '../../../api/types'
+import type { ImageUploaded, OkeiUnit, ReferenceItem } from '../../../api/types'
 import { useAuth } from '../../../auth/AuthContext'
 import { useT, type Dictionary } from '../../../i18n'
 import { formatDate } from '../../../lib/format'
@@ -187,7 +187,11 @@ function ImageField({
             </Typography>
           )}
           {error && (
-            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{ display: 'block', maxWidth: 460, mt: 0.5 }}
+            >
               {error}
             </Typography>
           )}
@@ -500,11 +504,14 @@ export function ReferenceListPage() {
                     onUpload={async (file) => {
                       const body = new FormData()
                       body.append('file', file)
-                      const { data } = await api.post<{ image_url: string | null }>(
+                      const { data } = await api.post<ImageUploaded>(
                         `/catalog/${editing?.id}/image`,
                         body,
                       )
-                      setValues((current) => ({ ...current, image_url: data.image_url }))
+                      setValues((current) => ({ ...current, image_url: data.product.image_url }))
+                      // Загрузка прошла — но увидит ли фотографию посетитель,
+                      // знает только сервер: он и проверяет её доступность.
+                      if (!data.visible) throw new Error(data.detail)
                     }}
                   />
                 )

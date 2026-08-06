@@ -179,3 +179,35 @@ def put_to_bucket(config: StorageConfig, key: str, data: bytes, content_type: st
         CacheControl=CACHE_CONTROL,
     )
     return f"{config.base_url}/{key}"
+
+
+def check_readable(key: str) -> tuple[bool, str]:
+    """Открывается ли файл обычным запросом, как из браузера.
+
+    Успешной загрузки мало. У Cloudflare R2 бакеты закрыты по умолчанию, и
+    файл, лежащий в хранилище, для страницы всё равно не существует. Разницу
+    между «загрузилось» и «видно посетителю» человек иначе узнаёт только по
+    битой картинке.
+    """
+
+    import httpx
+
+    config = resolve_config()
+    if not config.configured:
+        # Локальный диск раздаёт само приложение — проверять нечего.
+        return True, ""
+
+    if not config.public_url:
+        return False, (
+            "адрес для браузера не указан, а адрес хранилища требует подписи. "
+            "Откройте бакету публичный доступ и впишите его адрес в настройках"
+        )
+
+    try:
+        r = httpx.get(f"{config.base_url}/{key}", timeout=15, follow_redirects=True)
+    except Exception as exc:
+        return False, f"файл не запрашивается: {type(exc).__name__}"
+
+    if r.status_code == 200:
+        return True, ""
+    return False, f"хранилище ответило {r.status_code}. Проверьте публичный доступ к бакету"

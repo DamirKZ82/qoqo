@@ -336,3 +336,10 @@ export interface StorageSettings {
   secret_set: boolean
   configured: boolean
 }
+
+/** Ответ на загрузку фотографии товара: попала в хранилище и видна ли на сайте. */
+export interface ImageUploaded {
+  product: CatalogProduct
+  visible: boolean
+  detail: string
+}

@@ -15,7 +15,7 @@ from sqlalchemy import select
 from app.core.deps import DbSession, require_roles
 from app.models import EDITOR_ROLES, Nomenclature
 from app.services.slug import slugify
-from app.services.storage import save_file
+from app.services.storage import check_readable, save_file
 
 router = APIRouter(prefix="/catalog", tags=["Каталог продукции"])
 
@@ -46,6 +46,18 @@ class ProductRead(BaseModel):
     category_id: uuid.UUID | None
     category_name: str | None
     translations: dict[str, Any]
+
+
+class ImageUploaded(BaseModel):
+    """Ответ на загрузку фотографии.
+
+    Кроме карточки сообщает, увидит ли фотографию посетитель сайта: попасть в
+    хранилище и стать видимой — разные события.
+    """
+
+    product: ProductRead
+    visible: bool
+    detail: str
 
 
 class CategoryGroup(BaseModel):
@@ -134,7 +146,7 @@ def read_product(slug: str, db: DbSession) -> Any:
     return _product(item)
 
 
-@router.post("/{item_id}/image", response_model=ProductRead)
+@router.post("/{item_id}/image", response_model=ImageUploaded)
 def upload_image(
     item_id: uuid.UUID, db: DbSession, file: UploadFile = File(...), _: Any = editor
 ) -> Any:
@@ -167,7 +179,13 @@ def upload_image(
         item.slug = _unique_slug(db, item)
     db.commit()
     db.refresh(item)
-    return _product(item)
+
+    видно, причина = check_readable(item.image_url)
+    return ImageUploaded(
+        product=_product(item),
+        visible=видно,
+        detail="" if видно else f"Файл загружен, но на сайте не откроется: {причина}",
+    )
 
 
 def _unique_slug(db: DbSession, item: Nomenclature) -> str:
