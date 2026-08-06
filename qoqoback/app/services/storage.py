@@ -129,6 +129,7 @@ def client(config: StorageConfig) -> Any:
 
     # boto3 нужен только при работе с бакетом, поэтому импорт локальный.
     import boto3
+    from botocore.config import Config
 
     return boto3.client(
         "s3",
@@ -136,6 +137,16 @@ def client(config: StorageConfig) -> Any:
         region_name=config.region or None,
         aws_access_key_id=config.access_key or None,
         aws_secret_access_key=config.secret_key or None,
+        config=Config(
+            signature_version="s3v4",
+            # Начиная с boto3 1.36 клиент добавляет к загрузке контрольную
+            # сумму и передаёт тело кусками. AWS это понимает, а Cloudflare R2,
+            # MinIO и прочие совместимые хранилища — нет: они отвечают
+            # «подпись не совпала», и человек идёт проверять ключи, с которыми
+            # всё в порядке. Считаем сумму только там, где её требуют.
+            request_checksum_calculation="when_required",
+            response_checksum_validation="when_supported",
+        ),
     )
 
 
