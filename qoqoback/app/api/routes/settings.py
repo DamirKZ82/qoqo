@@ -1,3 +1,4 @@
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -12,7 +13,11 @@ from app.schemas.settings import (
     MailTestResult,
     SettingsRead,
     SettingsWrite,
+    StorageSettingsRead,
+    StorageSettingsWrite,
+    StorageTestResult,
 )
+from app.services import storage
 from app.services.storage import save_file
 
 router = APIRouter(prefix="/settings", tags=["Настройки системы"])
@@ -196,3 +201,69 @@ def send_test_email(user: CurrentUser, _: Any = admin_only) -> MailTestResult:
     if error is None:
         return MailTestResult(sent=True, detail=f"Письмо отправлено на {user.email}")
     return MailTestResult(sent=False, detail=error)
+
+
+# --- Хранилище файлов ----------------------------------------------------
+
+
+def _storage_read(settings: AppSettings) -> StorageSettingsRead:
+    return StorageSettingsRead(
+        s3_bucket=settings.s3_bucket,
+        s3_endpoint_url=settings.s3_endpoint_url,
+        s3_region=settings.s3_region,
+        s3_access_key=settings.s3_access_key,
+        s3_public_url=settings.s3_public_url,
+        secret_set=bool(settings.s3_secret_key_enc),
+        configured=storage.resolve_config().configured,
+    )
+
+
+@router.get("/storage", response_model=StorageSettingsRead)
+def read_storage_settings(db: DbSession, _: Any = admin_only) -> Any:
+    """Настройки хранилища. Только администратору: здесь ключи от бакета."""
+
+    return _storage_read(get_or_create_settings(db))
+
+
+@router.put("/storage", response_model=StorageSettingsRead)
+def update_storage_settings(
+    payload: StorageSettingsWrite, db: DbSession, _: Any = admin_only
+) -> Any:
+    settings = get_or_create_settings(db)
+
+    for field, value in payload.model_dump(exclude={"s3_secret_key"}).items():
+        setattr(settings, field, value)
+
+    if payload.s3_secret_key:
+        settings.s3_secret_key_enc = encrypt(payload.s3_secret_key)
+    elif not payload.s3_bucket:
+        # Бакет убрали — держать ключ от него незачем.
+        settings.s3_secret_key_enc = None
+
+    db.commit()
+    db.refresh(settings)
+    return _storage_read(settings)
+
+
+@router.post("/storage/test", response_model=StorageTestResult)
+def test_storage(_: Any = admin_only) -> StorageTestResult:
+    """Кладёт в бакет пробный файл и сразу убирает его.
+
+    Проверять чтением нельзя: пустой бакет ответит тем же, что и неверный
+    ключ, — а нам нужно знать, что запись работает. Именно записи и не хватает,
+    когда фотографии товаров молча пропадают.
+    """
+
+    config = storage.resolve_config()
+    if not config.configured:
+        return StorageTestResult(ok=False, detail="Бакет не указан — файлы лягут на диск")
+
+    ключ = f"_probe/{uuid.uuid4().hex}.txt"
+    try:
+        клиент = storage.client(config)
+        клиент.put_object(Bucket=config.bucket, Key=ключ, Body=b"qoqo", ContentType="text/plain")
+        клиент.delete_object(Bucket=config.bucket, Key=ключ)
+    except Exception as exc:
+        return StorageTestResult(ok=False, detail=f"{type(exc).__name__}: {exc}"[:400])
+
+    return StorageTestResult(ok=True, detail=f"Запись и удаление прошли. Файлы: {config.base_url}")

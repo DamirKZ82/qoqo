@@ -1,4 +1,5 @@
 import DeleteIcon from '@mui/icons-material/Delete'
+import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import SendIcon from '@mui/icons-material/Send'
 import UploadIcon from '@mui/icons-material/Upload'
 import Alert from '@mui/material/Alert'
@@ -18,7 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { api, errorMessage, mediaUrl } from '../../api/client'
 import { useSettings } from '../../api/queries'
-import type { AppSettings, MailSettings } from '../../api/types'
+import type { AppSettings, MailSettings, StorageSettings } from '../../api/types'
 import { Logo } from '../../components/Logo'
 import { useT } from '../../i18n'
 import logoDarkSrc from '../../assets/logo-dark.svg'
@@ -292,6 +293,138 @@ function MailCard() {
   )
 }
 
+
+/** Настройки хранилища файлов. Рядом с почтой: та же природа — доступ к чужой службе. */
+function StorageCard() {
+  const t = useT()
+  const [form, setForm] = useState<Record<string, unknown> | null>(null)
+  const [secret, setSecret] = useState('')
+  const [note, setNote] = useState<string | null>(null)
+
+  const { data, refetch } = useQuery({
+    queryKey: ['settings', 'storage'],
+    queryFn: async () => (await api.get<StorageSettings>('/settings/storage')).data,
+  })
+
+  const значения = form ?? (data as unknown as Record<string, unknown>) ?? {}
+  const поле = (имя: string) => (значения[имя] as string | null) ?? ''
+  const правка = (имя: string, значение: unknown) =>
+    setForm({ ...(значения as Record<string, unknown>), [имя]: значение })
+
+  const save = useMutation({
+    mutationFn: async () =>
+      (await api.put<StorageSettings>('/settings/storage', { ...значения, s3_secret_key: secret }))
+        .data,
+    onSuccess: async () => {
+      setSecret('')
+      setForm(null)
+      await refetch()
+      setNote(t.settings.storage.saved)
+    },
+  })
+
+  const test = useMutation({
+    mutationFn: async () =>
+      (await api.post<{ ok: boolean; detail: string }>('/settings/storage/test')).data,
+    onSuccess: (result) => setNote(result.detail),
+    onError: (error) => setNote(errorMessage(error)),
+  })
+
+  return (
+    <Card>
+      <CardContent>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+          <Typography variant="h6">{t.settings.storage.title}</Typography>
+          <Chip
+            size="small"
+            color={data?.configured ? 'success' : 'warning'}
+            variant={data?.configured ? 'filled' : 'outlined'}
+            label={data?.configured ? t.settings.storage.bucketUsed : t.settings.storage.diskUsed}
+          />
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {t.settings.storage.hint}
+        </Typography>
+
+        <Stack spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label={t.settings.storage.bucket}
+              value={поле('s3_bucket')}
+              onChange={(e) => правка('s3_bucket', e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label={t.settings.storage.region}
+              value={поле('s3_region')}
+              onChange={(e) => правка('s3_region', e.target.value)}
+              placeholder="auto"
+              sx={{ minWidth: 160 }}
+            />
+          </Stack>
+
+          <TextField
+            label={t.settings.storage.endpoint}
+            value={поле('s3_endpoint_url')}
+            onChange={(e) => правка('s3_endpoint_url', e.target.value)}
+            helperText={t.settings.storage.endpointHint}
+            fullWidth
+          />
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label={t.settings.storage.accessKey}
+              value={поле('s3_access_key')}
+              onChange={(e) => правка('s3_access_key', e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label={t.settings.storage.secretKey}
+              type="password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              helperText={data?.secret_set ? t.settings.storage.secretKept : undefined}
+              autoComplete="new-password"
+              fullWidth
+            />
+          </Stack>
+
+          <TextField
+            label={t.settings.storage.publicUrl}
+            value={поле('s3_public_url')}
+            onChange={(e) => правка('s3_public_url', e.target.value)}
+            helperText={t.settings.storage.publicUrlHint}
+            fullWidth
+          />
+
+          <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending}>
+              {t.settings.submit}
+            </Button>
+            <Button
+              startIcon={<CloudUploadIcon />}
+              onClick={() => test.mutate()}
+              disabled={test.isPending || !data?.configured}
+            >
+              {t.settings.storage.test}
+            </Button>
+            <Typography variant="caption" color="text.secondary">
+              {t.settings.storage.testHint}
+            </Typography>
+          </Stack>
+        </Stack>
+
+        <Snackbar
+          open={Boolean(note)}
+          autoHideDuration={8000}
+          onClose={() => setNote(null)}
+          message={note}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
 export function SettingsPage() {
   const t = useT()
   const queryClient = useQueryClient()
@@ -460,6 +593,8 @@ export function SettingsPage() {
       </Card>
 
       <MailCard />
+
+      <StorageCard />
 
       <Box>
         <Button variant="contained" size="large" onClick={handleSave} disabled={save.isPending}>

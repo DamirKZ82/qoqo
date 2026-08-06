@@ -68,3 +68,35 @@ class MailSettingsWrite(BaseModel):
 class MailTestResult(BaseModel):
     sent: bool
     detail: str
+
+
+# --- Хранилище файлов ----------------------------------------------------
+
+
+class StorageSettingsRead(BaseModel):
+    """Настройки бакета. Секретного ключа здесь нет — как и пароля почты."""
+
+    s3_bucket: str | None
+    s3_endpoint_url: str | None
+    s3_region: str | None
+    s3_access_key: str | None
+    s3_public_url: str | None
+    secret_set: bool
+    # Пока бакета нет, файлы ложатся на локальный диск. На serverless это
+    # означает, что загруженное исчезнет вместе с вызовом.
+    configured: bool
+
+
+class StorageSettingsWrite(BaseModel):
+    s3_bucket: str | None = Field(default=None, max_length=200)
+    s3_endpoint_url: str | None = Field(default=None, max_length=500)
+    s3_region: str | None = Field(default=None, max_length=50)
+    s3_access_key: str | None = Field(default=None, max_length=200)
+    # Пустое значение означает «оставить прежний»: обратно ключ не отдаётся.
+    s3_secret_key: str | None = Field(default=None, max_length=500)
+    s3_public_url: str | None = Field(default=None, max_length=500)
+
+
+class StorageTestResult(BaseModel):
+    ok: bool
+    detail: str

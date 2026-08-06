@@ -13,10 +13,24 @@ def make_settings(**overrides: Any) -> Settings:
     return Settings(_env_file=None, **overrides)
 
 
+def config(**overrides: Any) -> storage.StorageConfig:
+    поля: dict[str, Any] = {
+        "bucket": "",
+        "endpoint_url": "",
+        "region": "",
+        "access_key": "",
+        "secret_key": "",
+        "public_url": "",
+    }
+    поля.update(overrides)
+    return storage.StorageConfig(**поля)
+
+
 def test_local_storage_writes_file_and_returns_media_url(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(storage, "get_settings", lambda: make_settings(media_root=str(tmp_path)))
+    monkeypatch.setattr(storage, "resolve_config", config)
 
     url = storage.save_file(b"picture", "branding", ".png", "image/png")
 
@@ -31,6 +45,7 @@ def test_uploaded_name_does_not_reuse_client_filename(
     """Имя генерируется само: чужая строка в путь не попадает."""
 
     monkeypatch.setattr(storage, "get_settings", lambda: make_settings(media_root=str(tmp_path)))
+    monkeypatch.setattr(storage, "resolve_config", config)
 
     first = storage.save_file(b"a", "content", ".png", "image/png")
     second = storage.save_file(b"b", "content", ".png", "image/png")
@@ -41,12 +56,12 @@ def test_uploaded_name_does_not_reuse_client_filename(
 def test_bucket_storage_puts_object_and_returns_public_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    settings = make_settings(
-        s3_bucket="qoqo-media",
-        s3_endpoint_url="https://s3.example.com",
-        s3_public_url="https://cdn.qoqo.kz",
+    настройки = config(
+        bucket="qoqo-media",
+        endpoint_url="https://s3.example.com",
+        public_url="https://cdn.qoqo.kz",
     )
-    monkeypatch.setattr(storage, "get_settings", lambda: settings)
+    monkeypatch.setattr(storage, "resolve_config", lambda: настройки)
 
     calls: list[dict[str, Any]] = []
 
@@ -54,7 +69,7 @@ def test_bucket_storage_puts_object_and_returns_public_url(
         def put_object(self, **kwargs: Any) -> None:
             calls.append(kwargs)
 
-    monkeypatch.setattr(storage, "_client", FakeClient)
+    monkeypatch.setattr(storage, "client", lambda _: FakeClient())
 
     url = storage.save_file(b"svg", "branding", ".svg", "image/svg+xml")
 
@@ -68,19 +83,43 @@ def test_bucket_storage_puts_object_and_returns_public_url(
 @pytest.mark.parametrize(
     ("overrides", "expected"),
     [
+        ({"bucket": "media", "public_url": "https://cdn.qoqo.kz/"}, "https://cdn.qoqo.kz"),
         (
-            {"s3_bucket": "media", "s3_public_url": "https://cdn.qoqo.kz/"},
-            "https://cdn.qoqo.kz",
-        ),
-        (
-            {"s3_bucket": "media", "s3_endpoint_url": "https://s3.example.com/"},
+            {"bucket": "media", "endpoint_url": "https://s3.example.com/"},
             "https://s3.example.com/media",
         ),
         (
-            {"s3_bucket": "media", "s3_region": "eu-central-1"},
+            {"bucket": "media", "region": "eu-central-1"},
             "https://media.s3.eu-central-1.amazonaws.com",
         ),
     ],
 )
-def test_public_base_url(overrides: dict[str, Any], expected: str) -> None:
-    assert storage.public_base_url(make_settings(**overrides)) == expected
+def test_base_url(overrides: dict[str, Any], expected: str) -> None:
+    assert config(**overrides).base_url == expected
+
+
+def test_database_settings_win_over_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Настройки из системы важнее переменных: их правит администратор."""
+
+    monkeypatch.setenv("S3_BUCKET", "из-окружения")
+
+    class FakeRow:
+        s3_bucket = "из-базы"
+        s3_endpoint_url = None
+        s3_region = "auto"
+        s3_access_key = "ключ"
+        s3_secret_key_enc = None
+        s3_public_url = None
+
+    class FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, *args):
+            return FakeRow()
+
+    monkeypatch.setattr("app.db.session.SessionLocal", FakeSession)
+    assert storage.resolve_config().bucket == "из-базы"

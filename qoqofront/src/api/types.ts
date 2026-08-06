@@ -323,3 +323,14 @@ export interface CatalogGroup {
   sort_order: number
   products: CatalogProduct[]
 }
+
+/** Настройки хранилища файлов. Секретного ключа нет: сервер его не отдаёт. */
+export interface StorageSettings {
+  s3_bucket: string | null
+  s3_endpoint_url: string | null
+  s3_region: string | null
+  s3_access_key: string | null
+  s3_public_url: string | null
+  secret_set: boolean
+  configured: boolean
+}

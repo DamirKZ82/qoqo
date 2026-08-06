@@ -49,3 +49,17 @@ class AppSettings(TimestampMixin, Base):
     smtp_from: Mapped[str | None] = mapped_column(String(200))
     smtp_use_tls: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     smtp_use_ssl: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Хранилище файлов. Здесь, а не только в переменных окружения: без бакета
+    # фотографии товаров на serverless пропадают, а понять это по интерфейсу
+    # нельзя — загрузка проходит, файл исчезает позже. Пусть тот, кто ведёт
+    # витрину, видит и настраивает хранилище сам.
+    # Пустой s3_bucket — файлы лежат на локальном диске.
+    s3_bucket: Mapped[str | None] = mapped_column(String(200))
+    s3_endpoint_url: Mapped[str | None] = mapped_column(String(500))
+    s3_region: Mapped[str | None] = mapped_column(String(50))
+    s3_access_key: Mapped[str | None] = mapped_column(String(200))
+    # Ключ чужой — им пользуются, значит хешировать нельзя. Как и пароль почты,
+    # лежит зашифрованным: см. app/core/secrets.py.
+    s3_secret_key_enc: Mapped[str | None] = mapped_column(String(500))
+    s3_public_url: Mapped[str | None] = mapped_column(String(500))
