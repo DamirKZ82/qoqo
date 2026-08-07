@@ -22,6 +22,7 @@ import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
+import type { SxProps, Theme } from '@mui/material/styles'
 import { useMemo, useState } from 'react'
 
 import Badge from '@mui/material/Badge'
@@ -63,6 +64,30 @@ const DIMENSIONS: ReportDimension[] = [
 ]
 
 const GROUPS: PeriodGroup[] = ['day', 'week', 'month']
+
+/**
+ * Группа кнопок периода, которой разрешено переноситься на вторую строку.
+ *
+ * MUI считает группу одной строкой: рамку и скругления рисует только по её
+ * краям, а соседям срезает левую границу отрицательным отступом. С переносом
+ * это разваливается — на телефоне «Год» уезжал вниз без левой рамки и с чужим
+ * скруглением. Поэтому там, где кнопки переносятся, каждая становится сама
+ * себе кнопкой: своя рамка, своё скругление и просвет между ними. На широком
+ * экране всё помещается в строку, и группа остаётся слитной.
+ */
+const WRAPPING_GROUP: SxProps<Theme> = (theme) => ({
+  flexWrap: 'wrap',
+  [theme.breakpoints.down('sm')]: {
+    gap: 1,
+    '& .MuiToggleButtonGroup-grouped, & .MuiToggleButton-root': {
+      margin: 0,
+      border: 1,
+      borderColor: 'divider',
+      // Столько же, сколько у соседних полей и карточек.
+      borderRadius: 1,
+    },
+  },
+})
 
 type PresetKey = keyof Dictionary['reports']['presets']
 
@@ -354,7 +379,7 @@ export function ReportsPage() {
               exclusive
               value={preset}
               onChange={(_, value: PresetKey | null) => value && applyPreset(value)}
-              sx={{ flexWrap: 'wrap' }}
+              sx={WRAPPING_GROUP}
             >
               {PRESETS.map((item) => (
                 <ToggleButton key={item.key} value={item.key}>
